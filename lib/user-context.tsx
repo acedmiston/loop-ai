@@ -1,0 +1,59 @@
+'use client';
+
+import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { type User, type Session } from '@supabase/supabase-js';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+
+type UserContextType = {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+};
+
+const UserContext = createContext<UserContextType | undefined>(undefined);
+
+export function UserProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const supabase = createClientComponentClient();
+
+  // This useEffect listens for changes in the auth state and updates the user and session.
+  useEffect(() => {
+    const getSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error('Error fetching session:', error.message);
+        setLoading(false);
+        return;
+      }
+
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
+      setLoading(false);
+    };
+
+    getSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+
+  return <UserContext.Provider value={{ user, session, loading }}>{children}</UserContext.Provider>;
+}
+
+export const useUser = () => {
+  const context = useContext(UserContext);
+  if (context === undefined) {
+    throw new Error('useUser must be used within a UserProvider');
+  }
+  return context;
+};
