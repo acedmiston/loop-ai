@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { Guest } from '@/types/event';
 
 type FormData = {
   title: string;
@@ -24,6 +25,11 @@ export default function EventForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedMessage, setGeneratedMessage] = useState('');
   const [selectedGuests, setSelectedGuests] = useState<string[]>([]);
+  const [messageMode, setMessageMode] = useState<'single' | 'group'>('group');
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [personalizedMessages, setPersonalizedMessages] = useState<
+    { name: string; message: string }[]
+  >([]);
 
   const {
     register,
@@ -34,6 +40,24 @@ export default function EventForm() {
     getValues,
     formState: { errors },
   } = useForm<FormData>();
+
+  // Fetch guests on mount
+  const fetchGuests = async () => {
+    const res = await fetch('/api/guests');
+    const data = await res.json();
+    setGuests(
+      (data.guests || []).map((g: any) => ({
+        ...g,
+        firstName: g.first_name,
+        lastName: g.last_name,
+      }))
+    );
+  };
+
+  // Fetch guests on mount
+  useEffect(() => {
+    fetchGuests();
+  }, []);
 
   // Load saved form values on mount
   useEffect(() => {
@@ -56,32 +80,47 @@ export default function EventForm() {
 
   const handleGenerateMessage = async () => {
     const values = getValues();
-
     if (!values.title || !values.date || !values.time) {
       toast.error('Please fill in title, date, and time before generating a message.');
       return;
     }
-
     const structuredInput = `Event Title: ${values.title}\nDate: ${values.date}\nTime: ${values.time}\nDetails: ${values.input}`;
 
-    try {
+    if (messageMode === 'single') {
+      const guestNames = selectedGuests
+        .map(phone => {
+          const guest = guests.find(g => g.phone === phone);
+          return guest?.firstName || guest?.phone;
+        })
+        .filter(Boolean);
+
+      const personalized: { name: string; message: string }[] = [];
+      for (const name of guestNames) {
+        const response = await fetch('/api/generate-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            input: `${structuredInput}\nGuest Name: ${name}`,
+            tone: values.tone,
+          }),
+        });
+        const { message } = await response.json();
+        personalized.push({ name: name || 'Guest', message });
+      }
+      setPersonalizedMessages(personalized);
+      setGeneratedMessage(''); // Clear group message
+    } else {
       const messageResponse = await fetch('/api/generate-message', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           input: structuredInput,
           tone: values.tone,
         }),
       });
-
       const { message } = await messageResponse.json();
       setGeneratedMessage(message);
-    } catch (error) {
-      toast.error(
-        `Failed to generate message: ${error instanceof Error ? error.message : String(error)}`
-      );
+      setPersonalizedMessages([]);
     }
   };
 
@@ -95,16 +134,23 @@ export default function EventForm() {
     }
 
     try {
+      const payload: any = {
+        ...data,
+        guests: selectedGuests,
+      };
+
+      if (messageMode === 'single') {
+        payload.personalizedMessages = personalizedMessages;
+      } else {
+        payload.message = generatedMessage;
+      }
+
       const res = await fetch('/api/create-event', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...data,
-          message: generatedMessage,
-          guests: selectedGuests,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) throw new Error('Failed to create event');
@@ -191,12 +237,12 @@ export default function EventForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="input">What&apos;s going on in your life?</Label>
+            <Label htmlFor="input">What&apos;s happening in your world?</Label>
             <Textarea
               id="input"
               {...register('input')}
               rows={3}
-              placeholder="What would you like to share with your guests?"
+              placeholder="What would you like to share with your friends?"
             />
           </div>
 
@@ -217,8 +263,37 @@ export default function EventForm() {
 
           <div className="space-y-2">
             <Label htmlFor="guests">Guests to notify</Label>
+            <div className="space-y-2">
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="messageMode"
+                    value="group"
+                    checked={messageMode === 'group'}
+                    onChange={() => setMessageMode('group')}
+                  />
+                  Group
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="messageMode"
+                    value="single"
+                    checked={messageMode === 'single'}
+                    onChange={() => setMessageMode('single')}
+                  />
+                  Single
+                </label>
+              </div>
+            </div>
             <div className="p-2 border rounded-md border-input">
-              <GuestSelector selected={selectedGuests} setSelected={setSelectedGuests} />
+              <GuestSelector
+                guests={guests}
+                selected={selectedGuests}
+                setSelected={setSelectedGuests}
+                fetchGuests={fetchGuests}
+              />
             </div>
           </div>
         </div>
@@ -236,7 +311,18 @@ export default function EventForm() {
           </div>
         )}
 
-        {generatedMessage && (
+        {messageMode === 'single' && personalizedMessages.length > 0 && (
+          <div className="pt-4 space-y-4">
+            <Label className="text-sm font-medium">Personalized Messages</Label>
+            {personalizedMessages.map(pm => (
+              <div key={pm.name} className="p-4 border rounded-md bg-muted">
+                <div className="font-semibold">{pm.name}</div>
+                <MessagePreview message={pm.message} />
+              </div>
+            ))}
+          </div>
+        )}
+        {messageMode === 'group' && generatedMessage && (
           <div className="pt-4 space-y-4">
             <div className="p-4 border rounded-md bg-muted">
               <Label className="text-sm font-medium">Message Preview</Label>
@@ -249,7 +335,15 @@ export default function EventForm() {
         )}
 
         <div className="flex flex-wrap gap-3 mt-6">
-          <Button type="submit" disabled={isSubmitting || !generatedMessage} variant="default">
+          <Button
+            type="submit"
+            disabled={
+              isSubmitting ||
+              (messageMode === 'group' && !generatedMessage) ||
+              (messageMode === 'single' && personalizedMessages.length === 0)
+            }
+            variant="default"
+          >
             {isSubmitting ? 'Creating...' : 'Create Event & Notify Guests'}
           </Button>
         </div>

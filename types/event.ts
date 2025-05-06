@@ -2,6 +2,9 @@ export interface Guest {
   phone: string;
   name?: string;
   email?: string;
+  firstName?: string;
+  lastName?: string;
+  id?: string;
 }
 
 export interface Event {

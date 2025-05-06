@@ -1,8 +1,7 @@
-// app/dashboard/page.tsx (client component)
 'use client';
 
 import { useRequireAuth } from '@/lib/use-require-auth'; // Ensure the path is correct
-import DashboardContentServer from './DashboardContentServer'; // Import the server component
+import DashboardContent from './DashboardContent'; // Import the client component
 
 export default function DashboardPage() {
   // Use the authentication check to ensure user is logged in
@@ -18,5 +17,5 @@ export default function DashboardPage() {
   }
 
   // Once user is authenticated, show the dashboard content.
-  return <DashboardContentServer />;
+  return <DashboardContent />;
 }

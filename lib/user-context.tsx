@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { type User, type Session } from '@supabase/supabase-js';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+
+import { createSupabaseClient } from '@/lib/supabase';
 
 type UserContextType = {
   user: User | null;
@@ -17,19 +18,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const supabase = createClientComponentClient();
+  const supabase = createSupabaseClient();
 
-  // This useEffect listens for changes in the auth state and updates the user and session.
   useEffect(() => {
     const getSession = async () => {
       const { data, error } = await supabase.auth.getSession();
-
       if (error) {
-        console.error('Error fetching session:', error.message);
         setLoading(false);
         return;
       }
-
       setSession(data.session);
       setUser(data.session?.user ?? null);
       setLoading(false);

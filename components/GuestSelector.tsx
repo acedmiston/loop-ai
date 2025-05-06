@@ -1,37 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { Guest } from '@/types/event';
 
-type Guest = {
-  id: string;
-  first_name?: string;
-  last_name?: string;
-  phone: string;
-};
-
-type Props = {
+type GuestSelectorProps = {
+  guests: Guest[];
   selected: string[];
   setSelected: (phones: string[]) => void;
+  fetchGuests: () => Promise<void>;
 };
 
-export default function GuestSelector({ selected, setSelected }: Props) {
-  const [guests, setGuests] = useState<Guest[]>([]);
+export default function GuestSelector({
+  selected,
+  setSelected,
+  guests,
+  fetchGuests,
+}: GuestSelectorProps) {
   const [query, setQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [newGuest, setNewGuest] = useState({ firstName: '', lastName: '', phone: '' });
 
-  useEffect(() => {
-    fetch('/api/guests')
-      .then(res => res.json())
-      .then(data => setGuests(data.guests || []));
-  }, []);
-
   const filtered = guests.filter(guest => {
-    const fullName = `${guest.first_name || ''} ${guest.last_name || ''}`.toLowerCase();
+    const fullName = `${guest.firstName || ''} ${guest.lastName || ''}`.toLowerCase();
     return fullName.includes(query.toLowerCase()) || guest.phone.includes(query);
   });
 
@@ -71,7 +65,10 @@ export default function GuestSelector({ selected, setSelected }: Props) {
             {filtered.map((guest, index) => (
               <li
                 key={guest.id}
-                onClick={() => toggleSelect(guest.phone)}
+                onClick={() => {
+                  toggleSelect(guest.phone);
+                  setQuery(''); // Close the dropdown when a user is clicked
+                }}
                 className={`cursor-pointer p-2 rounded-md ${
                   selected.includes(guest.phone)
                     ? 'bg-blue-100 font-medium'
@@ -80,7 +77,7 @@ export default function GuestSelector({ selected, setSelected }: Props) {
                       : 'hover:bg-gray-100'
                 }`}
               >
-                {guest.first_name} {guest.last_name} — {guest.phone}
+                {guest.firstName} {guest.lastName} — {guest.phone}
               </li>
             ))}
             {filtered.length === 0 &&
@@ -103,8 +100,8 @@ export default function GuestSelector({ selected, setSelected }: Props) {
           {selected.map(phone => {
             const matchedGuest = guests.find(g => g.phone === phone);
             const label =
-              matchedGuest?.first_name || matchedGuest?.last_name
-                ? `${matchedGuest.first_name || ''} ${matchedGuest.last_name || ''}`.trim()
+              matchedGuest?.firstName || matchedGuest?.lastName
+                ? `${matchedGuest.firstName || ''} ${matchedGuest.lastName || ''}`.trim()
                 : phone;
 
             return (
@@ -170,11 +167,10 @@ export default function GuestSelector({ selected, setSelected }: Props) {
                       }),
                     });
 
-                    const { success, guest } = await res.json();
+                    const { success } = await res.json();
 
                     if (success) {
-                      setSelected([...selected, guest.phone]);
-                      setGuests(prev => [...prev, guest]);
+                      await fetchGuests(); // Re-fetch the full guest list after adding
                       setShowModal(false);
                       setQuery('');
                       setNewGuest({ firstName: '', lastName: '', phone: '' });

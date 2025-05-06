@@ -1,28 +1,36 @@
 import { NextResponse } from 'next/server';
-import supabase from '@/lib/supabase';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
 
-export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const searchQuery = url.searchParams.get('search') || '';
+// GET: Fetch all contacts for the authenticated user
+export async function GET() {
+  const supabase = await createSupabaseServerClient();
 
-  const query = supabase
+  // Get the current user
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+
+  // Fetch contacts created by this user
+  const { data, error } = await supabase
     .from('guests')
     .select('*')
-    .order('first_name')
-    .ilike('first_name', `%${searchQuery}%`)
-    .or(`ilike(last_name, '%${searchQuery}%')`)
-    .or(`ilike(first_name || ' ' || last_name, '%${searchQuery}%')`);
-
-  const { data, error } = await query;
+    .eq('created_by', user.id)
+    .order('first_name');
 
   if (error) {
-    return NextResponse.json({ error: 'Failed to fetch guests' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch contacts' }, { status: 500 });
   }
 
   return NextResponse.json({ guests: data });
 }
 
+// POST: Add a new contact for the authenticated user
 export async function POST(req: Request) {
+  const supabase = await createSupabaseServerClient();
   const { first_name, last_name, phone } = await req.json();
 
   if (!first_name || !phone) {
@@ -35,29 +43,40 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid phone number format' }, { status: 400 });
   }
 
-  // Check for existing guest with same phone
+  // Get the current user for created_by
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+
+  // Check for existing contact with same phone for this user
   const { data: existing } = await supabase
     .from('guests')
     .select('id')
     .eq('phone', phone)
+    .eq('created_by', user.id)
     .maybeSingle();
 
   if (existing) {
     return NextResponse.json(
-      { error: 'Guest with this phone number already exists' },
+      { error: 'Contact with this phone number already exists' },
       { status: 400 }
     );
   }
 
+  // Insert the new contact (no event_id)
   const { data, error } = await supabase
     .from('guests')
-    .insert([{ first_name, last_name, phone }])
+    .insert([{ first_name, last_name, phone, created_by: user.id }])
     .select()
     .single();
 
   if (error) {
-    console.error('[Add Guest] Supabase Error:', error);
-    return NextResponse.json({ error: 'Failed to add guest' }, { status: 500 });
+    console.error('[Add Contact] Supabase Error:', error);
+    return NextResponse.json({ error: 'Failed to add contact' }, { status: 500 });
   }
 
   return NextResponse.json({ success: true, guest: data });

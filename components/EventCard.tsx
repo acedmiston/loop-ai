@@ -9,6 +9,15 @@ type EventCardProps = {
 };
 
 export default function EventCard({ event }: EventCardProps) {
+  // Prepare guest names
+  const guestNames = event.guests
+    .map(g => [g.firstName, g.lastName].filter(Boolean).join(' ').trim())
+    .filter(Boolean);
+
+  const visibleNames = guestNames.slice(0, 3).join(', ');
+  const extraCount = guestNames.length - 3;
+  const allNames = guestNames.join(', ');
+
   return (
     <div className="p-6 space-y-3 transition-shadow bg-white border rounded-lg shadow-sm hover:shadow-md">
       <div className="flex items-center justify-between">
@@ -35,7 +44,18 @@ export default function EventCard({ event }: EventCardProps) {
           <strong>Tone:</strong> {event.tone}
         </p>
         <p>
-          <strong>Guests:</strong> {event.guests.length}
+          <strong>Guests:</strong>{' '}
+          {guestNames.length === 0 ? (
+            <span className="text-gray-400">None</span>
+          ) : (
+            <span
+              title={guestNames.length > 3 ? allNames : undefined}
+              className={guestNames.length > 3 ? 'cursor-help underline decoration-dotted' : ''}
+            >
+              {visibleNames}
+              {extraCount > 0 && ` +${extraCount} more`}
+            </span>
+          )}
         </p>
       </div>
 

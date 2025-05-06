@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createSupabaseClient } from '@/lib/supabase';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -11,7 +11,7 @@ import Logo from '@/components/Logo';
 import { Check, X } from 'lucide-react';
 
 export default function SignupPage() {
-  const supabase = createClientComponentClient();
+  const supabase = createSupabaseClient();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -70,6 +70,7 @@ export default function SignupPage() {
         last_name: lastName,
         birthday,
         phone,
+        email: data.user.email,
       },
     ]);
 

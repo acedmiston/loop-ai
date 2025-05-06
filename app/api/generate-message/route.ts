@@ -10,10 +10,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing input' }, { status: 400 });
     }
 
-    const prompt = `
-    You are a helpful assistant that writes short, ${tone || 'casual'} text messages for someone who needs to notify their friends about an event or a change in plans.    
+    let prompt = `
+    You are a helpful assistant that writes short, ${tone || 'casual'} text messages for someone who needs to notify their friends about an event or a change in plans.
     
-    Write a single text message based on the structured event details below. It should sound natural and casual like a real SMS or iMessage (not like an email or formal invite). Use contractions, emojis, and a light tone. The message should either be addressed to "friends" or left generic—no formal greetings or signatures.
+    Write a single text message based on the structured event details below. It should sound natural and casual like a real SMS or iMessage (not like an email or formal invite). Use contractions, emojis, and a light tone.
+    `;
+
+    if (input.includes('Guest Name:')) {
+      prompt += `
+    If a guest name is provided, personalize the message to that person and use their name in the greeting. Otherwise, address the message to "friends" or leave it generic.
+    `;
+    } else {
+      prompt += `
+    The message should either be addressed to "friends" or left generic—no formal greetings or signatures.
+    `;
+    }
+
+    prompt += `
     
     Event Details:
     ${input}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useUser } from './user-context';
 
 export function useRequireAuth(redirectPath = '/login') {
-  const { user, loading } = useUser(); // We assume useUser is correctly implemented.
+  const { user, loading } = useUser();
   const router = useRouter();
 
   useEffect(() => {

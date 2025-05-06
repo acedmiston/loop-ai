@@ -5,12 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createSupabaseClient } from '@/lib/supabase';
 import { useUser } from '@/lib/user-context';
 import Skeleton from '@/components/Skeleton';
 
 export default function SettingsPage() {
-  const supabase = createClientComponentClient();
+  const supabase = createSupabaseClient();
   const { user } = useUser();
 
   const [firstName, setFirstName] = useState('');
@@ -21,17 +21,23 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!user) return;
-      const { data, error } = await supabase
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      const { data, error, status } = await supabase
         .from('profiles')
         .select('first_name, last_name, birthday')
         .eq('id', user.id)
         .single();
 
-      if (error) {
-        console.error('[settings] Failed to fetch profile', error);
+      if (error && status !== 406) {
+        console.error('[settings] Failed to fetch profile', { error, data });
         toast.error('Failed to load profile');
-      } else {
+        setFirstName('');
+        setLastName('');
+        setBirthday('');
+      } else if (data) {
         setFirstName(data.first_name || '');
         setLastName(data.last_name || '');
         setBirthday(data.birthday || '');
@@ -51,20 +57,24 @@ export default function SettingsPage() {
 
     setSaving(true);
 
+    // Use the email from the user object directly
+    const userEmail = user.email;
+
     const { error } = await supabase.from('profiles').upsert({
       id: user.id,
       first_name: firstName.trim(),
       last_name: lastName.trim() || null,
       birthday: birthday || null,
+      email: userEmail,
       updated_at: new Date().toISOString(),
     });
 
     if (error) {
+      console.error('Error updating profile:', error);
       toast.error('Failed to update profile');
     } else {
       toast.success('Profile updated!');
     }
-
     setSaving(false);
   };
 

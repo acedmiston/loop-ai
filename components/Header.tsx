@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createSupabaseClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/Logo';
 import { useUser } from '@/lib/user-context';
@@ -11,8 +11,8 @@ import { toast } from 'sonner';
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, loading } = useUser();
-  const supabase = createClientComponentClient();
+  const { user } = useUser();
+  const supabase = createSupabaseClient();
 
   const [userProfile, setUserProfile] = useState<any>(null); // State to hold profile data
 
@@ -46,18 +46,10 @@ export default function Header() {
     setTimeout(() => router.push('/login'), 800);
   };
 
-  if (loading) {
-    return (
-      <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-1 bg-white border-b shadow-sm">
-        Checking authentication...
-      </header>
-    );
-  }
-
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-1 bg-white border-b shadow-sm">
       <div className="flex items-center gap-6">
-        <Logo size="md" />
+        <Logo size="sm" />
         {user && (
           <nav className="hidden gap-4 text-sm text-gray-600 sm:flex">
             <a
@@ -77,6 +69,12 @@ export default function Header() {
               New Event
             </a>
             <a
+              href="/contacts"
+              className={`transition hover:text-blue-600 ${pathname === '/contacts' ? 'text-blue-600 font-medium' : ''}`}
+            >
+              Contacts
+            </a>
+            <a
               href="/settings"
               className={`transition hover:text-blue-600 ${
                 pathname === '/settings' ? 'text-blue-600 font-medium' : ''
@@ -91,7 +89,7 @@ export default function Header() {
         <div className="flex items-center gap-4 text-sm">
           {/* Show first name from the profile, fallback to email */}
           <span className="text-gray-700">
-            Signed in as {userProfile?.first_name || user.email}
+            Signed in as {userProfile?.first_name?.trim() ? userProfile.first_name : user.email}
           </span>
           <Button variant="outline" size="sm" onClick={handleLogout}>
             Log out
