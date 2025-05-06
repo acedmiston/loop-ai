@@ -14,17 +14,14 @@ export default function Logo({ size = 'md' }: LogoProps) {
   };
 
   return (
-    <span className="inline align-text-bottom">
-      <span className={`font-bold ${sizeClasses[size].container}`}>
-        L
-        <span
-          className={`inline-block ${sizeClasses[size].infinity} rotate-180 lava-gradient transition-all duration-500 transform ${sizeClasses[size].translateY}`}
-          style={{ transformOrigin: 'center' }}
-        >
-          ∞
-        </span>
-        P
+    <span className={`font-bold ${sizeClasses[size].container}`}>
+      L
+      <span
+        className={`inline-block ${sizeClasses[size].infinity} rotate-180 lava-gradient transition-all duration-500 transform ${sizeClasses[size].translateY}`}
+      >
+        ∞
       </span>
+      P
     </span>
   );
 }

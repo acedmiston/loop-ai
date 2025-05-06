@@ -5,11 +5,13 @@ import { createSupabaseClient } from '@/lib/supabase';
 import EventCard from '@/components/EventCard';
 import Link from 'next/link';
 import { Event, Guest } from '@/types/event';
+import EditEventModal from '@/components/EditEventModal';
 
 export default function DashboardContent() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createSupabaseClient();
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -73,11 +75,23 @@ export default function DashboardContent() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-4">
-          {events.map(event => (
-            <EventCard key={event.id} event={event} />
-          ))}
-        </div>
+        <>
+          <div className="space-y-4">
+            {events.map(event => (
+              <EventCard key={event.id} event={event} onEdit={setEditingEvent} />
+            ))}
+          </div>
+          {editingEvent && (
+            <EditEventModal
+              event={editingEvent}
+              onClose={() => setEditingEvent(null)}
+              onSave={updatedEvent => {
+                setEvents(events => events.map(e => (e.id === updatedEvent.id ? updatedEvent : e)));
+                setEditingEvent(null);
+              }}
+            />
+          )}
+        </>
       )}
     </div>
   );

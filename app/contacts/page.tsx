@@ -107,7 +107,7 @@ export default function ContactsPage() {
                         'Failed to save contact. This phone number may already be in use.'
                       );
                     }
-                  } catch (err) {
+                  } catch {
                     toast.error('Something went wrong while saving this contact.');
                   }
                 }}

@@ -58,7 +58,7 @@ export default function GuestSelector({
               setQuery('');
             }
           }}
-          placeholder="Search guests..."
+          placeholder="Search friends..."
         />
         {query && (
           <ul className="absolute z-10 w-full p-2 mt-1 space-y-1 overflow-auto transition-all duration-200 bg-white border rounded-md shadow max-h-40">

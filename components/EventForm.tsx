@@ -2,7 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { SubmitHandler, useForm } from 'react-hook-form';
+import * as yup from 'yup';
+import { yupResolver } from '@hookform/resolvers/yup';
 import MessagePreview from './MessagePreview';
 import GuestSelector from './GuestSelector';
 import { Input } from '@/components/ui/input';
@@ -17,8 +19,22 @@ type FormData = {
   date: string;
   time: string;
   input: string;
+  guests: string[];
   tone: string;
 };
+
+const eventSchema = yup.object({
+  title: yup.string().required('Title is required'),
+  date: yup.string().required('Date is required'),
+  time: yup.string().required('Time is required'),
+  input: yup.string().required('Event details are required'),
+  guests: yup
+    .array()
+    .of(yup.string().required())
+    .min(1, 'At least one guest is required')
+    .default([]),
+  tone: yup.string().required('Tone is required'),
+});
 
 export default function EventForm() {
   const router = useRouter();
@@ -39,7 +55,17 @@ export default function EventForm() {
     watch,
     getValues,
     formState: { errors },
-  } = useForm<FormData>();
+  } = useForm<FormData>({
+    resolver: yupResolver(eventSchema),
+    defaultValues: {
+      title: '',
+      date: '',
+      time: '',
+      input: '',
+      tone: 'friendly',
+      guests: [],
+    },
+  });
 
   // Fetch guests on mount
   const fetchGuests = async () => {
@@ -59,24 +85,10 @@ export default function EventForm() {
     fetchGuests();
   }, []);
 
-  // Load saved form values on mount
+  // Keep guests in sync with form
   useEffect(() => {
-    const saved = localStorage.getItem('event-form');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      Object.keys(parsed).forEach(key => {
-        setValue(key as keyof FormData, parsed[key]);
-      });
-    }
-  }, [setValue]);
-
-  // Watch and save form to localStorage
-  useEffect(() => {
-    const subscription = watch(value => {
-      localStorage.setItem('event-form', JSON.stringify(value));
-    });
-    return () => subscription.unsubscribe();
-  }, [watch]);
+    setValue('guests', selectedGuests);
+  }, [selectedGuests, setValue]);
 
   const handleGenerateMessage = async () => {
     const values = getValues();
@@ -124,14 +136,8 @@ export default function EventForm() {
     }
   };
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit: SubmitHandler<FormData> = async data => {
     setIsSubmitting(true);
-
-    if (selectedGuests.length === 0) {
-      toast.error('Please add at least one guest.');
-      setIsSubmitting(false);
-      return;
-    }
 
     try {
       const payload: any = {
@@ -141,8 +147,11 @@ export default function EventForm() {
 
       if (messageMode === 'single') {
         payload.personalizedMessages = personalizedMessages;
-      } else {
+      } else if (generatedMessage) {
         payload.message = generatedMessage;
+      } else {
+        // If no AI message, use the input as the message
+        payload.message = data.input;
       }
 
       const res = await fetch('/api/create-event', {
@@ -197,7 +206,7 @@ export default function EventForm() {
   };
 
   return (
-    <div className="max-w-xl p-8 mx-auto mt-6 space-y-6 bg-white border shadow-sm rounded-xl">
+    <div className="max-w-xl p-8 mx-auto mt-6 space-y-8 bg-white border shadow-sm rounded-xl">
       <div className="space-y-1 text-center">
         <h1 className="text-2xl font-bold">Create a New Event</h1>
         <p className="text-sm text-muted-foreground">
@@ -205,7 +214,8 @@ export default function EventForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+        {/* Event Details */}
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
@@ -214,14 +224,14 @@ export default function EventForm() {
               {...register('title', { required: true })}
               placeholder="e.g. Birthday Dinner"
             />
-            {errors.title && <p className="mt-1 text-sm text-red-500">Title is required.</p>}
+            {errors.title && <p className="mt-1 text-sm text-red-500">{errors.title.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="date">Date</Label>
               <Input type="date" id="date" {...register('date', { required: true })} />
-              {errors.date && <p className="mt-1 text-sm text-red-500">Date is required.</p>}
+              {errors.date && <p className="mt-1 text-sm text-red-500">{errors.date.message}</p>}
             </div>
 
             <div className="space-y-2">
@@ -235,22 +245,44 @@ export default function EventForm() {
               {errors.time && <p className="mt-1 text-sm text-red-500">{errors.time.message}</p>}
             </div>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="input">What&apos;s happening in your world?</Label>
-            <Textarea
-              id="input"
-              {...register('input')}
-              rows={3}
-              placeholder="What would you like to share with your friends?"
+        {/* Guests Section (above AI) */}
+        <div className="space-y-2">
+          <Label htmlFor="guests">Friends to notify</Label>
+          <div className="p-2 border rounded-md border-input">
+            <GuestSelector
+              guests={guests}
+              selected={selectedGuests}
+              setSelected={setSelectedGuests}
+              fetchGuests={fetchGuests}
             />
+            <input type="hidden" {...register('guests')} value={selectedGuests} />
           </div>
+          {errors.guests && (
+            <p className="mt-1 text-sm text-red-500">{errors.guests.message as string}</p>
+          )}
+        </div>
 
+        {/* What's happening in your world? */}
+        <div className="space-y-2">
+          <Label htmlFor="input">Event details</Label>
+          <Textarea
+            id="input"
+            {...register('input')}
+            rows={3}
+            placeholder="This will be sent as the message to your friends, or used as the AI prompt if you choose AI to help below."
+          />
+          {errors.input && <p className="mt-1 text-sm text-red-500">{errors.input.message}</p>}
+        </div>
+
+        {/* AI Assisted Help (optional) */}
+        <div className="pt-6 space-y-4 border-t">
+          <h2 className="text-lg font-semibold">AI Help (we all need it sometimes!)</h2>
+          <Label htmlFor="tone">Tone</Label>
           <div className="space-y-2">
-            <Label htmlFor="tone">Tone</Label>
             <select
               id="tone"
-              {...register('tone')}
               className="w-full p-2 border rounded-md border-input"
               defaultValue="friendly"
             >
@@ -260,81 +292,78 @@ export default function EventForm() {
               <option value="apologetic">Apologetic</option>
             </select>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="guests">Guests to notify</Label>
-            <div className="space-y-2">
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="messageMode"
-                    value="group"
-                    checked={messageMode === 'group'}
-                    onChange={() => setMessageMode('group')}
-                  />
-                  Group
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="messageMode"
-                    value="single"
-                    checked={messageMode === 'single'}
-                    onChange={() => setMessageMode('single')}
-                  />
-                  Single
-                </label>
-              </div>
-            </div>
-            <div className="p-2 border rounded-md border-input">
-              <GuestSelector
-                guests={guests}
-                selected={selectedGuests}
-                setSelected={setSelectedGuests}
-                fetchGuests={fetchGuests}
+          {/* Group/Single radio buttons for AI message mode */}
+          <Label htmlFor="messageMode">How many friends are you sending this to?</Label>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="messageMode"
+                value="group"
+                checked={messageMode === 'group'}
+                onChange={() => setMessageMode('group')}
               />
-            </div>
+              A Group
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="messageMode"
+                value="single"
+                checked={messageMode === 'single'}
+                onChange={() => setMessageMode('single')}
+              />
+              One
+            </label>
           </div>
+          <Button
+            type="button"
+            onClick={handleGenerateMessage}
+            variant="secondary"
+            className="mt-2"
+            disabled={!getValues('title') || !getValues('date') || !getValues('time')}
+          >
+            Generate Message
+          </Button>
+          {(generatedMessage || personalizedMessages.length > 0) && (
+            <div className="pt-4 space-y-4">
+              <Label className="text-sm font-medium">AI Generated Message (editable)</Label>
+              {messageMode === 'single' && personalizedMessages.length > 0 ? (
+                personalizedMessages.map((pm, idx) => (
+                  <div key={pm.name} className="p-4 border rounded-md bg-muted">
+                    <div className="font-semibold">{pm.name}</div>
+                    <MessagePreview
+                      message={pm.message}
+                      editable
+                      onChange={val =>
+                        setPersonalizedMessages(msgs =>
+                          msgs.map((m, i) => (i === idx ? { ...m, message: val } : m))
+                        )
+                      }
+                    />
+                  </div>
+                ))
+              ) : (
+                <MessagePreview
+                  message={generatedMessage}
+                  onChange={setGeneratedMessage}
+                  editable
+                />
+              )}
+              <Button
+                type="button"
+                onClick={regenerateMessage}
+                variant="secondary"
+                className="mt-2"
+              >
+                Regenerate Message
+              </Button>
+            </div>
+          )}
         </div>
 
-        {!generatedMessage && (
-          <div className="flex flex-wrap gap-3">
-            <Button
-              type="button"
-              onClick={handleGenerateMessage}
-              variant="default"
-              disabled={!getValues('title') || !getValues('date') || !getValues('time')}
-            >
-              Generate Message
-            </Button>
-          </div>
-        )}
-
-        {messageMode === 'single' && personalizedMessages.length > 0 && (
-          <div className="pt-4 space-y-4">
-            <Label className="text-sm font-medium">Personalized Messages</Label>
-            {personalizedMessages.map(pm => (
-              <div key={pm.name} className="p-4 border rounded-md bg-muted">
-                <div className="font-semibold">{pm.name}</div>
-                <MessagePreview message={pm.message} />
-              </div>
-            ))}
-          </div>
-        )}
-        {messageMode === 'group' && generatedMessage && (
-          <div className="pt-4 space-y-4">
-            <div className="p-4 border rounded-md bg-muted">
-              <Label className="text-sm font-medium">Message Preview</Label>
-              <MessagePreview message={generatedMessage} />
-            </div>
-            <Button type="button" onClick={regenerateMessage} variant="secondary">
-              Regenerate Message
-            </Button>
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-3 mt-6">
+        {/* Create Event button, spaced from Generate Message */}
+        <div className="flex flex-wrap gap-3 mt-10">
           <Button
             type="submit"
             disabled={
@@ -344,7 +373,7 @@ export default function EventForm() {
             }
             variant="default"
           >
-            {isSubmitting ? 'Creating...' : 'Create Event & Notify Guests'}
+            {isSubmitting ? 'Creating...' : 'Create Event'}
           </Button>
         </div>
       </form>
