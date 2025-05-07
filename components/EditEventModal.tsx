@@ -42,7 +42,7 @@ export default function EditEventModal({
       const res = await fetch('/api/guests');
       const data = await res.json();
       setAllGuests(
-        (data.guests || []).map((g: any) => ({
+        (data.guests || []).map((g: Guest) => ({
           ...g,
           firstName: g.first_name,
           lastName: g.last_name,
@@ -86,7 +86,7 @@ export default function EditEventModal({
       .in('phone', selectedGuests);
 
     if (guestRows && guestRows.length > 0) {
-      const eventGuestInserts = guestRows.map((g: any) => ({
+      const eventGuestInserts = guestRows.map((g: { id: string }) => ({
         event_id: event.id,
         guest_id: g.id,
       }));
@@ -158,7 +158,7 @@ export default function EditEventModal({
       } else {
         toast.error('Failed to generate message.');
       }
-    } catch (err) {
+    } catch {
       toast.error('Error generating message.');
     }
     setGenerating(false);
@@ -281,7 +281,7 @@ export default function EditEventModal({
                   onChange={e => setPersonalize(e.target.checked)}
                   className="accent-blue-600"
                 />
-                Personalize with each friend's name
+                Personalize with each friend&apos;s name
               </label>
               <Button
                 size="sm"
@@ -301,7 +301,7 @@ export default function EditEventModal({
                 personalize && message.includes('{{firstName}}') && selectedGuests.length > 0
                   ? (() => {
                       const firstGuest = allGuests.find(g => g.phone === selectedGuests[0]);
-                      const previewName = firstGuest?.firstName || 'friend';
+                      const previewName = firstGuest?.first_name || 'friend';
                       return message.replace(/\{\{firstName\}\}/g, previewName);
                     })()
                   : message
@@ -314,7 +314,7 @@ export default function EditEventModal({
               <div className="mt-2 text-xs text-yellow-600">
                 {(() => {
                   const firstGuest = allGuests.find(g => selectedGuests[0] === g.phone);
-                  const firstName = firstGuest?.firstName || 'friend';
+                  const firstName = firstGuest?.first_name || 'friend';
                   return `Note: Each guest will receive a personalized message with their own name, not just ${firstName}`;
                 })()}
               </div>

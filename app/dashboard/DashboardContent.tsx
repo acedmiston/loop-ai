@@ -25,7 +25,7 @@ export default function DashboardContent() {
 
       if (!error && data) {
         setEvents(
-          data.map((e: any) => ({
+          data.map(e => ({
             id: e.id,
             input: e.input,
             tone: e.tone,
@@ -37,10 +37,10 @@ export default function DashboardContent() {
             location: e.location,
             location_lat: e.location_lat,
             location_lng: e.location_lng,
-            guests: (e.guests || []).map((g: any) => ({
+            guests: (e.guests || []).map((g: Guest) => ({
               phone: g.phone,
-              firstName: g.first_name,
-              lastName: g.last_name,
+              first_name: g.first_name,
+              last_name: g.last_name,
               email: g.email,
             })) as Guest[],
           })) as Event[]

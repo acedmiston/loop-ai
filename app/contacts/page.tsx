@@ -12,12 +12,13 @@ export default function ContactsPage() {
   const [showModal, setShowModal] = useState(false);
   const [newGuest, setNewGuest] = useState({ firstName: '', lastName: '', phone: '' });
 
+  // Watch this to make sure this works correctly.
   useEffect(() => {
     fetch('/api/guests')
       .then(res => res.json())
       .then(data =>
         setGuests(
-          (data.guests || []).map((g: any) => ({
+          (data.guests || []).map((g: Guest) => ({
             ...g,
             firstName: g.first_name,
             lastName: g.last_name,
@@ -27,7 +28,7 @@ export default function ContactsPage() {
   }, []);
 
   const filtered = guests.filter(guest => {
-    const fullName = `${guest.firstName || ''} ${guest.lastName || ''}`.toLowerCase();
+    const fullName = `${guest.first_name || ''} ${guest.last_name || ''}`.toLowerCase();
     return fullName.includes(query.toLowerCase()) || guest.phone.includes(query);
   });
 
@@ -46,7 +47,7 @@ export default function ContactsPage() {
         {filtered.map(guest => (
           <li key={guest.phone} className="flex items-center justify-between py-2 border-b">
             <span>
-              {guest.firstName} {guest.lastName} — {guest.phone}
+              {guest.first_name} {guest.last_name} — {guest.phone}
             </span>
           </li>
         ))}

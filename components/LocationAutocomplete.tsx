@@ -11,10 +11,12 @@ export default function LocationAutocomplete({
 }: {
   value: string;
   onChange: (val: string) => void;
-  onSelect?: (place: any) => void;
+  onSelect?: (place: { place_name: string; center: [number, number] }) => void;
   placeholder?: string;
 }) {
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<
+    Array<{ place_name: string; center: [number, number]; id: string }>
+  >([]);
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -30,7 +32,9 @@ export default function LocationAutocomplete({
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&autocomplete=true&limit=5`
       );
       const data = await res.json();
-      setSuggestions(data.features || []);
+      setSuggestions(
+        (data.features || []) as Array<{ place_name: string; center: [number, number]; id: string }>
+      );
     } catch {
       setSuggestions([]);
     }
@@ -45,7 +49,7 @@ export default function LocationAutocomplete({
     timeoutRef.current = setTimeout(() => fetchSuggestions(val), 300);
   };
 
-  const handleSelect = (place: any) => {
+  const handleSelect = (place: { place_name: string; center: [number, number] }) => {
     onChange(place.place_name);
     if (onSelect) onSelect(place);
     setShowDropdown(false);

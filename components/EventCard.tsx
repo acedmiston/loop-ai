@@ -3,6 +3,7 @@
 import React from 'react';
 import { Event } from '@/types/event';
 import { format, formatDistanceToNow } from 'date-fns';
+import Image from 'next/image';
 
 type EventCardProps = {
   event: Event;
@@ -12,7 +13,7 @@ type EventCardProps = {
 export default function EventCard({ event, onEdit }: EventCardProps) {
   // Prepare guest names
   const guestNames = event.guests
-    .map(g => [g.firstName, g.lastName].filter(Boolean).join(' ').trim())
+    .map(g => [g.first_name, g.last_name].filter(Boolean).join(' ').trim())
     .filter(Boolean);
 
   const visibleNames = guestNames.slice(0, 3).join(', ');
@@ -20,7 +21,7 @@ export default function EventCard({ event, onEdit }: EventCardProps) {
   const allNames = guestNames.join(', ');
 
   const firstGuest = event.guests && event.guests.length > 0 ? event.guests[0] : undefined;
-  const previewName = firstGuest?.firstName || 'friend';
+  const previewName = firstGuest?.first_name || 'friend';
   const wasPersonalized =
     event.message.includes('{{firstName}}') ||
     event.message.toLowerCase().includes('hi friend') ||
@@ -93,7 +94,9 @@ export default function EventCard({ event, onEdit }: EventCardProps) {
                 rel="noopener noreferrer"
                 className="shrink-0"
               >
-                <img
+                <Image
+                  width={200}
+                  height={120}
                   src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s+ff0000(${event.location_lng},${event.location_lat})/${event.location_lng},${event.location_lat},15,0/200x120?access_token=${process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}`}
                   alt="Map preview"
                   className="rounded shadow border w-[200px] h-[120px] object-cover"

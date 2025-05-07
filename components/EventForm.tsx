@@ -73,7 +73,7 @@ export default function EventForm() {
     const res = await fetch('/api/guests');
     const data = await res.json();
     setGuests(
-      (data.guests || []).map((g: any) => ({
+      (data.guests || []).map((g: Guest) => ({
         ...g,
         firstName: g.first_name,
         lastName: g.last_name,
@@ -99,8 +99,8 @@ export default function EventForm() {
     }
     setGenerating(true);
     try {
-      let input = `Event Title: ${values.title}\nDate: ${values.date}\nTime: ${values.time}\nDetails: ${values.input}`;
-      let promptPersonalize = personalize
+      const input = `Event Title: ${values.title}\nDate: ${values.date}\nTime: ${values.time}\nDetails: ${values.input}`;
+      const promptPersonalize = personalize
         ? "\n\nPersonalize the message for each guest by including their first name at the start of the message using the placeholder {{firstName}}. For example: 'Hi {{firstName}}, ...'. Do not use any other greeting or signature. Only use the placeholder, do not use a real name."
         : '';
       const response = await fetch('/api/generate-message', {
@@ -119,7 +119,7 @@ export default function EventForm() {
       } else {
         toast.error('Failed to generate message.');
       }
-    } catch (err) {
+    } catch {
       toast.error('Error generating message.');
     }
     setGenerating(false);
@@ -129,7 +129,19 @@ export default function EventForm() {
     setIsSubmitting(true);
 
     try {
-      const payload: any = {
+      const payload: {
+        title: string;
+        date: string;
+        time: string;
+        input: string;
+        guests: string[];
+        tone: string;
+        message: string;
+        location: string;
+        location_lat: number | undefined;
+        location_lng: number | undefined;
+        personalize: boolean;
+      } = {
         ...data,
         guests: selectedGuests,
         message: message.trim(),
@@ -284,7 +296,7 @@ export default function EventForm() {
                 onChange={e => setPersonalize(e.target.checked)}
                 className="accent-blue-600"
               />
-              Personalize with each friend's name
+              Personalize with each friend&apos;s name
             </label>
             <Button
               type="button"
@@ -315,20 +327,23 @@ export default function EventForm() {
                 <span className="font-semibold text-blue-700">Preview:</span>{' '}
                 {(() => {
                   const firstSelected = guests.find(g => selectedGuests[0] === g.phone);
-                  const previewName = firstSelected?.firstName || 'friend';
+                  const previewName = firstSelected?.first_name || 'friend';
                   if (personalize && message.includes('{{firstName}}')) {
                     return message.replace(/\{\{firstName\}\}/g, previewName);
                   }
                   return message;
                 })()}
+                <span className="ml-2 italic text-blue-500">
+                  (Each guest will see their own name if personalized)
+                </span>
               </div>
             )}
             {personalize && (
               <div className="mt-2 text-sm text-yellow-600">
                 {(() => {
                   const firstSelected = guests.find(g => selectedGuests[0] === g.phone);
-                  const firstName = firstSelected?.firstName || 'friend';
-                  return `Note: Each guest will receive a personalized message with their own name, not just ${firstName}.`;
+                  const firstName = firstSelected?.first_name || 'friend';
+                  return `Note: Each guest will receive a personalized message with their own name, not just ${firstName}`;
                 })()}
               </div>
             )}

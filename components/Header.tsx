@@ -13,7 +13,7 @@ export default function Header() {
   const pathname = usePathname();
   const { user } = useUser();
   const supabase = createSupabaseClient();
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     const getProfile = async () => {
@@ -83,7 +83,10 @@ export default function Header() {
         {user && (
           <div className="flex items-center gap-4 text-sm">
             <span className="text-gray-700">
-              Signed in as {userProfile?.first_name?.trim() ? userProfile.first_name : user.email}
+              Signed in as{' '}
+              {typeof userProfile?.first_name === 'string' && userProfile.first_name.trim()
+                ? userProfile.first_name
+                : user.email}
             </span>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               Log out
