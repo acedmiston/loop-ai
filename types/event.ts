@@ -17,4 +17,7 @@ export interface Event {
   message: string;
   createdAt: string;
   guests: Guest[];
+  location?: string;
+  location_lat?: number;
+  location_lng?: number;
 }

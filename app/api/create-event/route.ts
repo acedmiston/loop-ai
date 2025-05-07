@@ -4,19 +4,11 @@ import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient();
-  const { title, date, time, tone, input, guests, messageMode, message, personalizedMessages } =
+  const { title, date, time, tone, input, guests, message, location, location_lat, location_lng } =
     await req.json();
 
-  // Validate required fields for both modes
-  if (
-    !title ||
-    !tone ||
-    !input ||
-    !Array.isArray(guests) ||
-    guests.length === 0 ||
-    (messageMode === 'group' && !message) ||
-    (messageMode === 'single' && (!personalizedMessages || personalizedMessages.length === 0))
-  ) {
+  // Validate required fields
+  if (!title || !tone || !input || !Array.isArray(guests) || guests.length === 0 || !message) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
@@ -39,13 +31,11 @@ export async function POST(req: Request) {
       date,
       time,
       tone,
-      message:
-        messageMode === 'group'
-          ? message
-          : personalizedMessages && personalizedMessages.length > 0
-            ? personalizedMessages[0].message
-            : '',
+      message,
       input,
+      location,
+      location_lat,
+      location_lng,
       created_by: user.id,
     },
   ]);
@@ -81,8 +71,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to associate guests' }, { status: 500 });
     }
   }
-
-  // Optionally, store personalizedMessages in a separate table or send notifications here
 
   return NextResponse.json({ success: true, eventId });
 }

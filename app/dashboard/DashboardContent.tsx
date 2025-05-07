@@ -17,7 +17,9 @@ export default function DashboardContent() {
     const fetchEvents = async () => {
       const { data, error } = await supabase
         .from('events')
-        .select('*, guests(*)')
+        .select(
+          'id, input, tone, message, created_at, title, date, time, location, location_lat, location_lng, guests(*)'
+        )
         .order('created_at', { ascending: false });
 
       if (!error && data) {
@@ -31,6 +33,9 @@ export default function DashboardContent() {
             title: e.title,
             date: e.date || new Date().toISOString(),
             time: e.time,
+            location: e.location,
+            location_lat: e.location_lat,
+            location_lng: e.location_lng,
             guests: (e.guests || []).map((g: any) => ({
               phone: g.phone,
               firstName: g.first_name,
@@ -51,11 +56,11 @@ export default function DashboardContent() {
   }
 
   return (
-    <div className="max-w-3xl p-6 mx-auto space-y-6 bg-white border rounded-lg shadow-sm">
+    <div className="max-w-4xl p-6 mx-auto space-y-6">
       <div className="flex items-center justify-between pb-4 border-b">
         <h1 className="text-2xl font-bold">Your Events</h1>
         <Link
-          href="/start"
+          href="/create-event"
           className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
         >
           Create New Event
@@ -68,7 +73,7 @@ export default function DashboardContent() {
             Create your first event to start keeping your friends in the loop.
           </p>
           <Link
-            href="/start"
+            href="/create-event"
             className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
           >
             Create Your First Event
@@ -76,7 +81,7 @@ export default function DashboardContent() {
         </div>
       ) : (
         <>
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 justify-items-center">
             {events.map(event => (
               <EventCard key={event.id} event={event} onEdit={setEditingEvent} />
             ))}
@@ -87,6 +92,10 @@ export default function DashboardContent() {
               onClose={() => setEditingEvent(null)}
               onSave={updatedEvent => {
                 setEvents(events => events.map(e => (e.id === updatedEvent.id ? updatedEvent : e)));
+                setEditingEvent(null);
+              }}
+              onDelete={deletedEventId => {
+                setEvents(events => events.filter(e => e.id !== deletedEventId));
                 setEditingEvent(null);
               }}
             />

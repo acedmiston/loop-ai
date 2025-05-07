@@ -15,7 +15,7 @@ export default function MessagePreview({
     <div className="p-4 bg-white border rounded-md shadow">
       <p className="mb-2 text-sm font-semibold">Message Preview:</p>
       {editable && onChange ? (
-        <Textarea value={message} onChange={e => onChange(e.target.value)} rows={4} />
+        <Textarea value={message} onChange={e => onChange(e.target.value)} rows={5} />
       ) : (
         <p>{message}</p>
       )}

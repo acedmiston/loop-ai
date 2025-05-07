@@ -3,7 +3,7 @@ import openai from '@/lib/openai';
 
 export async function POST(req: Request) {
   try {
-    const { input, tone } = await req.json();
+    const { input, tone, personalize } = await req.json();
 
     if (!input) {
       console.error('Missing input in request body');
@@ -16,7 +16,9 @@ export async function POST(req: Request) {
     Write a single text message based on the structured event details below. It should sound natural and casual like a real SMS or iMessage (not like an email or formal invite). Use contractions, emojis, and a light tone.
     `;
 
-    if (input.includes('Guest Name:')) {
+    if (personalize) {
+      prompt += `\n\nPersonalize the message for each guest by including their first name at the start of the message using the placeholder {{firstName}}. For example: 'Hi {{firstName}}, ...'. Do not use any other greeting or signature. Only use the placeholder, do not use a real name.`;
+    } else if (input.includes('Guest Name:')) {
       prompt += `
     If a guest name is provided, personalize the message to that person and use their name in the greeting. Otherwise, address the message to "friends" or leave it generic.
     `;

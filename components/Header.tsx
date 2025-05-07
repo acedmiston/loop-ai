@@ -40,9 +40,9 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full bg-white border-b shadow-sm">
       <div className="flex items-center justify-between px-4 py-2 mx-auto">
         <div className="relative flex items-center gap-8">
-          <span className="absolute -top-3">
+          <div className="absolute -top-3">
             <Logo size="sm" />
-          </span>
+          </div>
           {user && (
             <nav className="items-center hidden gap-6 text-sm text-gray-600 sm:flex ml-[60px]">
               <a
@@ -54,9 +54,9 @@ export default function Header() {
                 Dashboard
               </a>
               <a
-                href="/start"
+                href="/create-event"
                 className={`transition hover:text-blue-600 ${
-                  pathname === '/start' ? 'text-blue-600 font-medium' : ''
+                  pathname === '/create-event' ? 'text-blue-600 font-medium' : ''
                 }`}
               >
                 New Event

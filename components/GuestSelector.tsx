@@ -174,6 +174,8 @@ export default function GuestSelector({
                       setShowModal(false);
                       setQuery('');
                       setNewGuest({ firstName: '', lastName: '', phone: '' });
+                      // Automatically select the new guest
+                      setSelected(Array.from(new Set([...selected, newGuest.phone])));
                     } else {
                       toast.error('Failed to save guest. This phone number may already be in use.');
                     }
