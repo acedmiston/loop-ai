@@ -125,7 +125,7 @@ export default function GuestSelector({
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white p-6 rounded-md w-[300px] space-y-4">
-            <h3 className="text-lg font-semibold">Add New Guest</h3>
+            <h3 className="text-lg font-semibold">Add New Friend</h3>
             <Input
               placeholder="First Name"
               value={newGuest.firstName}
@@ -185,7 +185,7 @@ export default function GuestSelector({
                   }
                 }}
               >
-                Add Guest
+                Add Friend
               </Button>
             </div>
           </div>

@@ -6,6 +6,7 @@ import EventCard from '@/components/EventCard';
 import Link from 'next/link';
 import { Event, Guest } from '@/types/event';
 import EditEventModal from '@/components/EditEventModal';
+import { motion } from 'framer-motion';
 
 export default function DashboardContent() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -56,52 +57,64 @@ export default function DashboardContent() {
   }
 
   return (
-    <div className="max-w-4xl p-6 mx-auto space-y-6">
-      <div className="flex items-center justify-between pb-4 border-b">
-        <h1 className="text-2xl font-bold">Your Events</h1>
-        <Link
-          href="/create-event"
-          className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
-        >
-          Create New Event
-        </Link>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <div className="mb-3 space-y-1 text-center">
+        <h1 className="text-2xl font-bold">Your Upcoming Events</h1>
+        <p className="text-sm text-muted-foreground">View and manage your events.</p>
       </div>
-      {events.length === 0 ? (
-        <div className="p-8 text-center border-2 border-gray-200 border-dashed rounded-lg">
-          <h3 className="mb-2 text-xl font-medium">No events yet</h3>
-          <p className="mb-4 text-sm text-gray-500">
-            Create your first event to start keeping your friends in the loop.
-          </p>
+      <div className="w-full max-w-4xl p-0 mx-auto space-y-6 md:p-6">
+        <div className="flex items-center justify-between pb-4 border-b">
+          <div />
           <Link
             href="/create-event"
             className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
           >
-            Create Your First Event
+            Create New Event
           </Link>
         </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 justify-items-center">
-            {events.map(event => (
-              <EventCard key={event.id} event={event} onEdit={setEditingEvent} />
-            ))}
+        {events.length === 0 ? (
+          <div className="p-8 text-center border-2 border-gray-200 border-dashed rounded-lg">
+            <h3 className="mb-2 text-xl font-medium">No events yet</h3>
+            <p className="mb-4 text-sm text-gray-500">
+              Create your first event to start keeping your friends in the loop.
+            </p>
+            <Link
+              href="/create-event"
+              className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            >
+              Create Your First Event
+            </Link>
           </div>
-          {editingEvent && (
-            <EditEventModal
-              event={editingEvent}
-              onClose={() => setEditingEvent(null)}
-              onSave={updatedEvent => {
-                setEvents(events => events.map(e => (e.id === updatedEvent.id ? updatedEvent : e)));
-                setEditingEvent(null);
-              }}
-              onDelete={deletedEventId => {
-                setEvents(events => events.filter(e => e.id !== deletedEventId));
-                setEditingEvent(null);
-              }}
-            />
-          )}
-        </>
-      )}
-    </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 justify-items-center">
+              {events.map(event => (
+                <EventCard key={event.id} event={event} onEdit={setEditingEvent} />
+              ))}
+            </div>
+            {editingEvent && (
+              <EditEventModal
+                event={editingEvent}
+                onClose={() => setEditingEvent(null)}
+                onSave={updatedEvent => {
+                  setEvents(events =>
+                    events.map(e => (e.id === updatedEvent.id ? updatedEvent : e))
+                  );
+                  setEditingEvent(null);
+                }}
+                onDelete={deletedEventId => {
+                  setEvents(events => events.filter(e => e.id !== deletedEventId));
+                  setEditingEvent(null);
+                }}
+              />
+            )}
+          </>
+        )}
+      </div>
+    </motion.div>
   );
 }

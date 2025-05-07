@@ -67,7 +67,7 @@ export default function Header() {
                   pathname === '/contacts' ? 'text-blue-600 font-medium' : ''
                 }`}
               >
-                Contacts
+                Friends
               </a>
               <a
                 href="/settings"
