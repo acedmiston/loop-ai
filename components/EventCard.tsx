@@ -10,7 +10,11 @@ type EventCardProps = {
   onEdit?: (event: Event) => void;
 };
 
-export default function EventCard({ event, onEdit }: EventCardProps) {
+export default function EventCard({
+  event,
+  onEdit,
+  onResend,
+}: EventCardProps & { onResend?: () => void }) {
   // Prepare guest names
   const guestNames = event.guests
     .map(g => [g.first_name, g.last_name].filter(Boolean).join(' ').trim())
@@ -37,7 +41,7 @@ export default function EventCard({ event, onEdit }: EventCardProps) {
           onClick={() => onEdit?.(event)}
           type="button"
         >
-          Edit event
+          Edit Event
         </button>
       </div>
 
@@ -48,9 +52,14 @@ export default function EventCard({ event, onEdit }: EventCardProps) {
               <strong>Date:</strong> {format(new Date(event.date + 'T00:00:00'), 'PPP')}
             </p>
           )}
-          {event.time && (
+          {event.start_time && (
             <p>
-              <strong>Time:</strong> {event.time}
+              <strong>Start:</strong> {event.start_time}
+            </p>
+          )}
+          {event.end_time && (
+            <p>
+              <strong>End:</strong> {event.end_time}
             </p>
           )}
         </div>
@@ -106,7 +115,7 @@ export default function EventCard({ event, onEdit }: EventCardProps) {
           </div>
         )}
         <div className={'mt-2' + (event.location_lat && event.location_lng ? ' md:mt-4' : '')}>
-          <strong>Guests: </strong>
+          <strong>Friends: </strong>
           {guestNames.length === 0 ? (
             <span className="text-gray-400">None</span>
           ) : (
@@ -124,19 +133,25 @@ export default function EventCard({ event, onEdit }: EventCardProps) {
       <div className="pt-2 border-t overflow-y-auto flex-1 min-h-[100px]">
         <label className="block mb-1 text-sm font-medium ">Message:</label>
         <div className="text-sm">{displayMessage}</div>
-        {wasPersonalized && event.guests.length > 1 && (
+        {wasPersonalized && (
           <div className="mt-2 text-xs italic text-blue-500">
-            This message was sent as a personal message to each guest with their own name.
+            This message was sent as a personal message to each friend with their own name.
           </div>
         )}
       </div>
       <div className="flex justify-between mt-2">
         <span className="px-0 py-1 text-xs text-gray-500 bg-white rounded-full">
+          Created:{' '}
           {event.createdAt
             ? formatDistanceToNow(new Date(event.createdAt), { addSuffix: true })
             : 'Recently'}
         </span>
-        <button className="text-xs text-blue-600 hover:underline">Resend notifications</button>
+        <button
+          className="px-2 py-1 text-xs text-white bg-blue-600 rounded-sm d-sm hover:underline"
+          onClick={onResend}
+        >
+          Resend messages
+        </button>
       </div>
     </div>
   );

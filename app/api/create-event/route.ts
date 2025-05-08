@@ -4,8 +4,19 @@ import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient();
-  const { title, date, time, tone, input, guests, message, location, location_lat, location_lng } =
-    await req.json();
+  const {
+    title,
+    date,
+    start_time,
+    end_time,
+    tone,
+    input,
+    guests,
+    message,
+    location,
+    location_lat,
+    location_lng,
+  } = await req.json();
 
   // Validate required fields
   if (!title || !tone || !input || !Array.isArray(guests) || guests.length === 0 || !message) {
@@ -29,7 +40,8 @@ export async function POST(req: Request) {
       id: eventId,
       title,
       date,
-      time,
+      start_time,
+      end_time,
       tone,
       message,
       input,

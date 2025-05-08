@@ -1,0 +1,188 @@
+import React, { useState } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+
+interface EventDateTimeModalProps {
+  initialStartDate?: Date | null;
+  initialEndDate?: Date | null;
+  initialHasEnd?: boolean;
+  onClose: () => void;
+  onSave: (start: Date | null, end: Date | null, hasEnd: boolean) => void;
+}
+
+const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
+  initialStartDate = null,
+  initialEndDate = null,
+  initialHasEnd = false,
+  onClose,
+  onSave,
+}) => {
+  const [startDate, setStartDate] = useState<Date | null>(initialStartDate);
+  const [endDate, setEndDate] = useState<Date | null>(initialEndDate);
+  const [hasEnd, setHasEnd] = useState(initialHasEnd);
+  const [activeTab, setActiveTab] = useState<'start' | 'end'>(initialHasEnd ? 'end' : 'start');
+
+  // Helper to get a date with the same day as startDate but a new time
+  const setTimeOnDate = (base: Date, time: Date) => {
+    const d = new Date(base);
+    d.setHours(time.getHours(), time.getMinutes(), 0, 0);
+    return d;
+  };
+
+  // All times for the scroll (every 15 min)
+  const getTimeOptions = () => {
+    const times: Date[] = [];
+    const base = startDate || new Date();
+    const d = new Date(base);
+    d.setHours(0, 0, 0, 0);
+    for (let i = 0; i < 24 * 4; i++) {
+      times.push(new Date(d));
+      d.setMinutes(d.getMinutes() + 15);
+    }
+    return times;
+  };
+
+  const timeOptions = getTimeOptions();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="relative flex flex-col items-center w-full max-w-xl p-6 bg-white shadow-xl rounded-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between w-full mb-4">
+          <div className="flex items-center">
+            <button
+              className={`px-3 py-1 rounded-t-md font-medium ${activeTab === 'start' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}
+              onClick={() => setActiveTab('start')}
+              type="button"
+            >
+              Start
+            </button>
+            {hasEnd ? (
+              <button
+                className={`ml-2 px-3 py-1 rounded-t-md font-medium ${activeTab === 'end' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}
+                onClick={() => setActiveTab('end')}
+                type="button"
+              >
+                End{' '}
+                <span
+                  className="ml-1 text-xs text-gray-400 cursor-pointer"
+                  onClick={e => {
+                    e.stopPropagation();
+                    setHasEnd(false);
+                    setEndDate(null);
+                    setActiveTab('start');
+                  }}
+                >
+                  × End
+                </span>
+              </button>
+            ) : (
+              <button
+                className="px-3 py-1 ml-2 font-medium text-blue-500 bg-gray-100 rounded-t-md hover:bg-blue-50"
+                onClick={() => {
+                  setHasEnd(true);
+                  setActiveTab('end');
+                }}
+                type="button"
+              >
+                + End
+              </button>
+            )}
+          </div>
+          <button
+            className="text-2xl font-bold text-gray-400 hover:text-gray-700"
+            onClick={onClose}
+            aria-label="Close"
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+        <div className="flex justify-center w-full max-w-full">
+          {/* Calendar */}
+          <div className="flex-shrink-0" style={{ minWidth: 288 }}>
+            <DatePicker
+              selected={startDate}
+              onChange={date => setStartDate(date as Date | null)}
+              inline
+              calendarClassName="!w-72"
+            />
+          </div>
+          {/* Time scrolls */}
+          <div className="flex max-w-full gap-0 overflow-x-auto">
+            {/* Start time scroll */}
+            <div style={{ minWidth: 96 }}>
+              <div className="mb-1 text-xs font-medium text-center text-gray-500">Start Time</div>
+              <div className="w-24 h-64 overflow-y-scroll bg-white border rounded-l-md">
+                {timeOptions.map((t, i) => (
+                  <div
+                    key={i}
+                    className={`px-2 py-1 text-center cursor-pointer ${
+                      startDate &&
+                      startDate.getHours() === t.getHours() &&
+                      startDate.getMinutes() === t.getMinutes()
+                        ? 'bg-blue-100 text-blue-700 font-semibold'
+                        : 'hover:bg-gray-100'
+                    }`}
+                    onClick={() => {
+                      if (startDate) setStartDate(setTimeOnDate(startDate, t));
+                      else setStartDate(t);
+                    }}
+                  >
+                    {t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* End time scroll (if enabled) */}
+            {hasEnd && (
+              <div style={{ minWidth: 96 }}>
+                <div className="mb-1 text-xs font-medium text-center text-gray-500">End Time</div>
+                <div className="w-24 h-64 overflow-y-scroll bg-white border-t border-b border-r rounded-r-md">
+                  {timeOptions.map((t, i) => (
+                    <div
+                      key={i}
+                      className={`px-2 py-1 text-center cursor-pointer ${
+                        endDate &&
+                        endDate.getHours() === t.getHours() &&
+                        endDate.getMinutes() === t.getMinutes()
+                          ? 'bg-blue-100 text-blue-700 font-semibold'
+                          : 'hover:bg-gray-100'
+                      }`}
+                      onClick={() => {
+                        if (startDate && endDate) setEndDate(setTimeOnDate(endDate, t));
+                        else if (startDate) setEndDate(setTimeOnDate(startDate, t));
+                        else setEndDate(t);
+                      }}
+                    >
+                      {t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex justify-end w-full gap-2 mt-6">
+          <button
+            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+            onClick={onClose}
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            onClick={() => onSave(startDate, endDate, hasEnd)}
+            type="button"
+            disabled={!startDate}
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EventDateTimeModal;

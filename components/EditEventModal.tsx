@@ -9,6 +9,8 @@ import GuestSelector from './GuestSelector';
 import { Guest } from '@/types/event';
 import { Label } from './ui/label';
 import LocationAutocomplete from './LocationAutocomplete';
+import EventDateTimeModal from './EventDateTimeModal';
+import 'react-datepicker/dist/react-datepicker.css';
 
 export default function EditEventModal({
   event,
@@ -23,7 +25,9 @@ export default function EditEventModal({
 }) {
   const [title, setTitle] = useState(event.title);
   const [date, setDate] = useState(event.date);
-  const [time, setTime] = useState(event.time);
+  const [startTime, setStartTime] = useState(event.start_time || '');
+  const [endTime, setEndTime] = useState(event.end_time || '');
+  const [hasEndTime, setHasEndTime] = useState(!!event.end_time);
   const [message, setMessage] = useState(event.message);
   const [saving, setSaving] = useState(false);
   const [tone, setTone] = useState(event.tone || 'friendly');
@@ -35,6 +39,13 @@ export default function EditEventModal({
   const [location, setLocation] = useState(event.location || '');
   const [locationLat, setLocationLat] = useState<number | undefined>(event.location_lat);
   const [locationLng, setLocationLng] = useState<number | undefined>(event.location_lng);
+  const [startDate, setStartDate] = useState<Date | null>(
+    event.start_time ? new Date(`${event.date}T${event.start_time}`) : null
+  );
+  const [endDate, setEndDate] = useState<Date | null>(
+    event.end_time ? new Date(`${event.date}T${event.end_time}`) : null
+  );
+  const [showDateModal, setShowDateModal] = useState(false);
 
   // Fetch all contacts on mount
   useEffect(() => {
@@ -58,7 +69,7 @@ export default function EditEventModal({
       if (message && !message.includes('[Name]')) {
         // Remove 'Hey friends!' if present at the start
         setMessage(prev => {
-          let updated = prev.replace(/^Hey friends![,\s]*/i, '');
+          const updated = prev.replace(/^Hey friends![,\s]*/i, '');
           return `Hi [Name], ${updated}`.replace(/^\s+/, '');
         });
       }
@@ -72,7 +83,13 @@ export default function EditEventModal({
   }, [personalize]);
 
   const handleSave = async () => {
-    if (!title.trim() || !date || !time.trim() || !message.trim() || selectedGuests.length === 0) {
+    if (
+      !title.trim() ||
+      !date ||
+      !startTime.trim() ||
+      !message.trim() ||
+      selectedGuests.length === 0
+    ) {
       toast.error('Please fill in all required fields and select at least one guest.');
       return;
     }
@@ -82,7 +99,8 @@ export default function EditEventModal({
       .update({
         title,
         date,
-        time,
+        start_time: startTime,
+        end_time: hasEndTime && endTime ? endTime : null,
         message,
         location,
         location_lat: locationLat,
@@ -117,7 +135,8 @@ export default function EditEventModal({
       ...event,
       title,
       date,
-      time,
+      start_time: startTime,
+      end_time: hasEndTime && endTime ? endTime : undefined,
       message,
       location,
       location_lat: locationLat,
@@ -155,8 +174,8 @@ export default function EditEventModal({
   };
 
   const handleGenerateMessage = async () => {
-    if (!title.trim() || !date || !time.trim()) {
-      toast.error('Please fill in title, date, and time before generating a message.');
+    if (!title.trim() || !date || !startTime.trim()) {
+      toast.error('Please fill in title, date, and start time before generating a message.');
       return;
     }
     setGenerating(true);
@@ -175,13 +194,16 @@ export default function EditEventModal({
         msg = msg.replace(/^(Hi|Hey) \[Name\][,!]?\s*/i, '');
         msg = `Hey friends! ${msg}`.replace(/^\s+/, '');
       }
+      let input = `Event Title: ${title}\nDate: ${date}\nStart Time: ${startTime}`;
+      if (hasEndTime && endTime) {
+        input += `\nEnd Time: ${endTime}`;
+      }
+      input += `\nDetails: ${msg}`;
       const response = await fetch('/api/generate-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          input:
-            `Event Title: ${title}\nDate: ${date}\nTime: ${time}\nDetails: ${msg}` +
-            promptPersonalize,
+          input: input + promptPersonalize,
           tone,
           personalize,
           location: location || undefined,
@@ -231,31 +253,47 @@ export default function EditEventModal({
             placeholder="Event Title"
           />
         </div>
-        <div className="flex gap-3">
-          <div className="flex-1 space-y-1">
-            <Label htmlFor="edit-date" className="block font-medium text-md">
-              Date
-            </Label>
-            <Input
-              id="edit-date"
-              type="date"
-              className="py-3 text-lg h-9"
-              value={date}
-              onChange={e => setDate(e.target.value)}
+        <div className="space-y-1">
+          <Label htmlFor="edit-date-time" className="block font-medium text-md">
+            Event Date & Start Time
+          </Label>
+          <button
+            type="button"
+            className="w-full px-3 py-2 text-left bg-white border rounded-md hover:bg-gray-50"
+            onClick={() => setShowDateModal(true)}
+          >
+            {startDate
+              ? `${startDate.toLocaleDateString()} ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+              : 'Select date & start time'}
+            {hasEndTime && endDate && (
+              <span className="ml-2 text-gray-500">
+                — {endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+          </button>
+          {showDateModal && (
+            <EventDateTimeModal
+              initialStartDate={startDate}
+              initialEndDate={endDate}
+              initialHasEnd={hasEndTime}
+              onClose={() => setShowDateModal(false)}
+              onSave={(start, end, hasEnd) => {
+                setShowDateModal(false);
+                setStartDate(start);
+                setEndDate(end);
+                setHasEndTime(hasEnd);
+                if (start) {
+                  setDate(start.toISOString().slice(0, 10));
+                  setStartTime(start.toISOString().slice(11, 16));
+                }
+                if (hasEnd && end) {
+                  setEndTime(end.toISOString().slice(11, 16));
+                } else {
+                  setEndTime('');
+                }
+              }}
             />
-          </div>
-          <div className="flex-1 space-y-1">
-            <Label htmlFor="edit-time" className="block font-medium text-md">
-              Time
-            </Label>
-            <Input
-              id="edit-time"
-              className="py-3 text-lg h-9"
-              value={time}
-              onChange={e => setTime(e.target.value)}
-              placeholder="Event Time"
-            />
-          </div>
+          )}
         </div>
         <div className="space-y-1">
           <Label htmlFor="edit-location" className="block font-medium text-md">
@@ -322,7 +360,7 @@ export default function EditEventModal({
               <Button
                 size="sm"
                 onClick={handleGenerateMessage}
-                disabled={generating || !title.trim() || !date || !time.trim()}
+                disabled={generating || !title.trim() || !date || !startTime.trim()}
               >
                 {generating ? 'Generating...' : 'Regenerate'}
               </Button>
@@ -331,7 +369,8 @@ export default function EditEventModal({
               Message
             </Label>
             <p className="text-sm text-gray-500">
-              (You can edit this, just don't remove <strong>[Name]</strong> if its personalized!)
+              (You can edit this, just don&apos;t remove <strong>[Name]</strong> if its
+              personalized!)
             </p>
             <Textarea
               id="edit-message"
@@ -387,7 +426,7 @@ export default function EditEventModal({
                 saving ||
                 !title.trim() ||
                 !date ||
-                !time.trim() ||
+                !startTime.trim() ||
                 !message.trim() ||
                 selectedGuests.length === 0
               }

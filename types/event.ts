@@ -5,6 +5,7 @@ export interface Guest {
   first_name?: string;
   last_name?: string;
   id?: string;
+  opted_out?: boolean;
 }
 
 export interface Event {
@@ -12,7 +13,8 @@ export interface Event {
   input: string;
   title: string;
   date: string;
-  time: string;
+  start_time: string;
+  end_time?: string;
   tone: string;
   message: string;
   createdAt: string;
