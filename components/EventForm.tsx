@@ -21,6 +21,7 @@ type FormData = {
   input: string;
   guests: string[];
   tone: string;
+  location?: string;
 };
 
 const eventSchema = yup.object({
@@ -91,6 +92,27 @@ export default function EventForm() {
     setValue('guests', selectedGuests);
   }, [selectedGuests, setValue]);
 
+  useEffect(() => {
+    if (personalize) {
+      // If [Name] is not present, add it at the start
+      if (message && !message.includes('[Name]')) {
+        // Remove 'Hey friends!' if present at the start
+        setMessage(prev => {
+          let updated = prev.replace(/^Hey friends![,\s]*/i, '');
+          return `Hi [Name], ${updated}`.replace(/^\s+/, '');
+        });
+      }
+    } else {
+      // If unchecking, replace any greeting with 'Hey friends!'
+      if (message && /Hi \[Name\][,!]?\s*|Hey \[Name\][,!]?\s*/i.test(message)) {
+        setMessage(prev => prev.replace(/^(Hi|Hey) \[Name\][,!]?\s*/i, 'Hey friends! '));
+      } else if (message && message.trim() === '') {
+        setMessage('Hey friends!');
+      }
+    }
+    // eslint-disable-next-line
+  }, [personalize]);
+
   const handleGenerateMessage = async () => {
     const values = getValues();
     if (!values.title || !values.date || !values.time) {
@@ -99,9 +121,24 @@ export default function EventForm() {
     }
     setGenerating(true);
     try {
-      const input = `Event Title: ${values.title}\nDate: ${values.date}\nTime: ${values.time}\nDetails: ${values.input}`;
+      // Always construct the message with the correct greeting based on personalize
+      let msg = message.trim();
+      if (personalize) {
+        // Remove any existing greeting and ensure [Name] is at the start
+        msg = msg.replace(/^Hey friends![,\s]*/i, '');
+        if (!msg.startsWith('Hi [Name],')) {
+          msg = `Hi [Name], ${msg}`.replace(/^\s+/, '');
+        }
+      } else {
+        // Remove any personalized greeting and use Hey friends!
+        msg = msg.replace(/^Hi \[Name\],?\s*/i, 'Hey friends! ');
+        if (!msg.startsWith('Hey friends!')) {
+          msg = `Hey friends! ${msg}`;
+        }
+      }
+      const input = `Event Title: ${values.title}\nDate: ${values.date}\nTime: ${values.time}\nDetails: ${msg}`;
       const promptPersonalize = personalize
-        ? "\n\nPersonalize the message for each guest by including their first name at the start of the message using the placeholder {{firstName}}. For example: 'Hi {{firstName}}, ...'. Do not use any other greeting or signature. Only use the placeholder, do not use a real name."
+        ? "\n\nPersonalize the message for each guest by including their first name at the start of the message using the placeholder [Name]. For example: 'Hi [Name], ...'. Do not use any other greeting or signature. Only use the placeholder, do not use a real name."
         : '';
       const response = await fetch('/api/generate-message', {
         method: 'POST',
@@ -110,6 +147,7 @@ export default function EventForm() {
           input: input + promptPersonalize,
           tone,
           personalize,
+          location: location || undefined,
         }),
       });
       const data = await response.json();
@@ -312,8 +350,11 @@ export default function EventForm() {
           </div>
           <div className="space-y-1">
             <Label htmlFor="message" className="block font-medium text-md">
-              Message
+              Message (Editable)
             </Label>
+            <p className="text-sm text-muted-foreground">
+              (Don&apos;t remove the [Name] placeholder, if you want them personalized!)
+            </p>
             <Textarea
               id="message"
               className="py-3 text-lg"
@@ -322,29 +363,24 @@ export default function EventForm() {
               rows={4}
               placeholder="Event Message"
             />
-            {personalize && (
+            {message.trim() && (
               <div className="p-4 mt-4 text-sm text-blue-900 border border-blue-200 rounded-md shadow-sm bg-blue-50">
                 <span className="font-semibold text-blue-700">Preview:</span>{' '}
                 {(() => {
                   const firstSelected = guests.find(g => selectedGuests[0] === g.phone);
-                  const previewName = firstSelected?.first_name || 'friend';
-                  if (personalize && message.includes('{{firstName}}')) {
-                    return message.replace(/\{\{firstName\}\}/g, previewName);
+                  const previewName = firstSelected?.first_name || firstSelected?.name || 'friend';
+                  let preview = message;
+                  if (personalize) {
+                    // Replace [Name] with previewName
+                    preview = preview.replace(/\[Name\]/g, previewName);
                   }
-                  return message;
+                  return preview;
                 })()}
-                <span className="ml-2 italic text-blue-500">
-                  (Each guest will see their own name if personalized)
-                </span>
               </div>
             )}
             {personalize && (
-              <div className="mt-2 text-sm text-yellow-600">
-                {(() => {
-                  const firstSelected = guests.find(g => selectedGuests[0] === g.phone);
-                  const firstName = firstSelected?.first_name || 'friend';
-                  return `Note: Each guest will receive a personalized message with their own name, not just ${firstName}`;
-                })()}
+              <div className="mt-2 mb-2 text-sm text-blue-500">
+                Note: Each friend will see their own name if personalized is checked!
               </div>
             )}
           </div>

@@ -25,7 +25,7 @@ export default function GuestSelector({
   const [newGuest, setNewGuest] = useState({ firstName: '', lastName: '', phone: '' });
 
   const filtered = guests.filter(guest => {
-    const fullName = `${guest.firstName || ''} ${guest.lastName || ''}`.toLowerCase();
+    const fullName = `${guest.first_name || ''} ${guest.last_name || ''}`.toLowerCase();
     return fullName.includes(query.toLowerCase()) || guest.phone.includes(query);
   });
 
@@ -77,7 +77,7 @@ export default function GuestSelector({
                       : 'hover:bg-gray-100'
                 }`}
               >
-                {guest.firstName} {guest.lastName} — {guest.phone}
+                {guest.first_name} {guest.last_name} — {guest.phone}
               </li>
             ))}
             {filtered.length === 0 &&
@@ -100,8 +100,8 @@ export default function GuestSelector({
           {selected.map(phone => {
             const matchedGuest = guests.find(g => g.phone === phone);
             const label =
-              matchedGuest?.firstName || matchedGuest?.lastName
-                ? `${matchedGuest.firstName || ''} ${matchedGuest.lastName || ''}`.trim()
+              matchedGuest?.first_name || matchedGuest?.last_name
+                ? `${matchedGuest.first_name || ''} ${matchedGuest.last_name || ''}`.trim()
                 : phone;
 
             return (

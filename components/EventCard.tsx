@@ -23,7 +23,7 @@ export default function EventCard({ event, onEdit }: EventCardProps) {
   const firstGuest = event.guests && event.guests.length > 0 ? event.guests[0] : undefined;
   const previewName = firstGuest?.first_name || 'friend';
   const wasPersonalized =
-    event.message.includes('{{firstName}}') ||
+    event.message.includes('[Name]') ||
     event.message.toLowerCase().includes('hi friend') ||
     (event.message.toLowerCase().includes('hi ') && event.guests.length > 1);
   const displayMessage = event.message.replace(/\{\{firstName\}\}/g, previewName);

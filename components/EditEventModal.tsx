@@ -52,6 +52,25 @@ export default function EditEventModal({
     fetchGuests();
   }, []);
 
+  useEffect(() => {
+    if (personalize) {
+      // If [Name] is not present, add it at the start
+      if (message && !message.includes('[Name]')) {
+        // Remove 'Hey friends!' if present at the start
+        setMessage(prev => {
+          let updated = prev.replace(/^Hey friends![,\s]*/i, '');
+          return `Hi [Name], ${updated}`.replace(/^\s+/, '');
+        });
+      }
+    } else {
+      // If unchecking, just remove [Name] from the message, but keep the rest
+      if (message && message.includes('[Name]')) {
+        setMessage(prev => prev.replace(/Hi \[Name\],?\s*/i, 'Hey friends! '));
+      }
+    }
+    // eslint-disable-next-line
+  }, [personalize]);
+
   const handleSave = async () => {
     if (!title.trim() || !date || !time.trim() || !message.trim() || selectedGuests.length === 0) {
       toast.error('Please fill in all required fields and select at least one guest.');
@@ -142,13 +161,30 @@ export default function EditEventModal({
     }
     setGenerating(true);
     try {
+      let msg = message.trim();
+      let promptPersonalize = '';
+      if (personalize) {
+        // Remove any existing greeting and ensure [Name] is at the start
+        msg = msg.replace(/^(Hi|Hey) \[Name\][,!]?\s*/i, '');
+        msg = msg.replace(/^Hey friends![,\s]*/i, '');
+        msg = `Hi [Name], ${msg}`.replace(/^\s+/, '');
+        promptPersonalize =
+          "\n\nPersonalize the message for each guest by including their first name at the start of the message using the placeholder [Name]. For example: 'Hi [Name], ...'. Do not use any other greeting or signature. Only use the placeholder, do not use a real name.";
+      } else {
+        // Remove any personalized greeting and use Hey friends!
+        msg = msg.replace(/^(Hi|Hey) \[Name\][,!]?\s*/i, '');
+        msg = `Hey friends! ${msg}`.replace(/^\s+/, '');
+      }
       const response = await fetch('/api/generate-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          input: `Event Title: ${title}\nDate: ${date}\nTime: ${time}\nDetails: ${message}`,
+          input:
+            `Event Title: ${title}\nDate: ${date}\nTime: ${time}\nDetails: ${msg}` +
+            promptPersonalize,
           tone,
           personalize,
+          location: location || undefined,
         }),
       });
       const data = await response.json();
@@ -170,7 +206,7 @@ export default function EditEventModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg p-4 space-y-3 bg-white shadow-lg rounded-2xl"
+        className="relative w-full max-w-lg p-4 space-y-2 bg-white shadow-lg rounded-2xl"
         onClick={e => e.stopPropagation()}
       >
         {/* Close X button */}
@@ -182,14 +218,14 @@ export default function EditEventModal({
         >
           x
         </button>
-        <h3 className="text-2xl font-bold">Edit Event</h3>
+        <h3 className="text-2xl font-bold">Edit {title}</h3>
         <div className="space-y-1">
           <Label htmlFor="edit-title" className="block font-medium text-md">
             Title
           </Label>
           <Input
             id="edit-title"
-            className="h-12 py-3 text-lg"
+            className="py-3 text-lg h-9"
             value={title}
             onChange={e => setTitle(e.target.value)}
             placeholder="Event Title"
@@ -203,7 +239,7 @@ export default function EditEventModal({
             <Input
               id="edit-date"
               type="date"
-              className="h-12 py-3 text-lg"
+              className="py-3 text-lg h-9"
               value={date}
               onChange={e => setDate(e.target.value)}
             />
@@ -214,7 +250,7 @@ export default function EditEventModal({
             </Label>
             <Input
               id="edit-time"
-              className="h-12 py-3 text-lg"
+              className="py-3 text-lg h-9"
               value={time}
               onChange={e => setTime(e.target.value)}
               placeholder="Event Time"
@@ -261,7 +297,7 @@ export default function EditEventModal({
                 </Label>
                 <select
                   id="edit-tone"
-                  className="w-full h-12 px-2 py-3 border rounded-md text-md"
+                  className="w-full px-2 text-sm border rounded-md h-9"
                   value={tone}
                   onChange={e => setTone(e.target.value)}
                 >
@@ -273,7 +309,7 @@ export default function EditEventModal({
               </div>
             </div>
             {/* Personalize checkbox before AI generation */}
-            <div className="flex items-center justify-between pb-1 gap-x-3">
+            <div className="flex items-center justify-between gap-x-3">
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -292,8 +328,11 @@ export default function EditEventModal({
               </Button>
             </div>
             <Label htmlFor="message-preview" className="block mb-1 text-sm font-small">
-              Message Preview
+              Message
             </Label>
+            <p className="text-sm text-gray-500">
+              (You can edit this, just don't remove <strong>[Name]</strong> if its personalized!)
+            </p>
             <Textarea
               id="edit-message"
               className="py-3 mt-1 text-lg"
@@ -310,18 +349,28 @@ export default function EditEventModal({
               rows={7}
               placeholder="Event Message"
             />
-            {personalize && (
-              <div className="mt-2 text-xs text-yellow-600">
+            {/* {personalize && (
+              <div className="mt-2 mb-2 text-xs italic text-blue-500">
+                (Each guest will see their own name if personalized)
+              </div>
+            )} */}
+            {message.trim() && (
+              <div className="p-4 text-sm text-blue-900 border border-blue-200 rounded-md shadow-sm bg-blue-50">
+                <span className="font-semibold text-blue-700">Preview:</span>{' '}
                 {(() => {
                   const firstGuest = allGuests.find(g => selectedGuests[0] === g.phone);
-                  const firstName = firstGuest?.first_name || 'friend';
-                  return `Note: Each guest will receive a personalized message with their own name, not just ${firstName}`;
+                  const previewName = firstGuest?.first_name || firstGuest?.name || 'friend';
+                  let preview = message;
+                  if (personalize) {
+                    preview = preview.replace(/\[Name\]/g, previewName);
+                  }
+                  return preview;
                 })()}
               </div>
             )}
           </div>
         </div>
-        <div className="flex items-center justify-between gap-4 pt-4">
+        <div className="flex items-center justify-between gap-4">
           <div>
             <Button variant="destructive" size="lg" onClick={handleDelete} disabled={saving}>
               Delete
