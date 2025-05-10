@@ -44,25 +44,37 @@ const EventDateTimePicker: React.FC<EventDateTimePickerProps> = ({
   const timeOptions = getTimeOptions();
 
   return (
-    <div className="w-full">
+    <div className="p-6 text-white bg-zinc-900 rounded-xl">
       {/* Custom Header */}
-      <div className="flex items-center mb-2">
+      <div className="flex items-center">
         <button
-          className={`px-3 py-1 rounded-t-md font-medium ${activeTab === 'start' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}
+          className={`px-6 py-2 rounded-t-lg font-semibold text-lg transition-colors
+            ${
+              activeTab === 'start'
+                ? 'bg-violet-600 text-white'
+                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+            }
+          `}
           onClick={() => setActiveTab('start')}
           type="button"
         >
-          Start
+          START
         </button>
         {hasEnd ? (
           <button
-            className={`ml-2 px-3 py-1 rounded-t-md font-medium ${activeTab === 'end' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}
+            className={`ml-2 px-6 py-2 rounded-t-lg font-semibold text-lg transition-colors flex items-center
+              ${
+                activeTab === 'end'
+                  ? 'bg-violet-600 text-white'
+                  : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+              }
+            `}
             onClick={() => setActiveTab('end')}
             type="button"
           >
-            End{' '}
+            END
             <span
-              className="ml-1 text-xs text-gray-400 cursor-pointer"
+              className="ml-2 text-xl cursor-pointer text-zinc-400 hover:text-red-400"
               onClick={e => {
                 e.stopPropagation();
                 setHasEnd(false);
@@ -70,48 +82,51 @@ const EventDateTimePicker: React.FC<EventDateTimePickerProps> = ({
                 setActiveTab('start');
               }}
             >
-              × End
+              ×
             </span>
           </button>
         ) : (
           <button
-            className="ml-2 px-3 py-1 rounded-t-md font-medium bg-gray-100 text-blue-500 hover:bg-blue-50"
+            className="px-6 py-2 ml-2 text-lg font-semibold transition-colors rounded-t-lg bg-zinc-800 text-violet-400 hover:bg-zinc-700"
             onClick={() => {
               setHasEnd(true);
               setActiveTab('end');
             }}
             type="button"
           >
-            + End
+            +END
           </button>
         )}
       </div>
-      <div className="flex gap-6">
+      <div>
         {/* Calendar */}
         <div>
           <DatePicker
             selected={startDate}
             onChange={date => onStartDateChange(date as Date | null)}
             inline
-            calendarClassName="!w-72"
+            calendarClassName="!w-[400px] !h-[400px] !text-lg !bg-zinc-900 !text-white !rounded-lg !border-zinc-700"
+            wrapperClassName="!w-[400px] !h-[400px]"
           />
         </div>
         {/* Time scrolls */}
-        <div className="flex gap-4">
+        <div className="flex gap-6-mt-2">
           {/* Start time scroll */}
           <div>
-            <div className="text-xs font-medium text-gray-500 mb-1 text-center">Start Time</div>
-            <div className="h-64 overflow-y-scroll border rounded-md bg-white w-24">
+            <div className="mb-2 text-xs font-semibold text-center text-zinc-400">Start Time</div>
+            <div className="w-24 h-64 overflow-y-scroll border rounded-lg bg-zinc-800">
               {timeOptions.map((t, i) => (
                 <div
                   key={i}
-                  className={`px-2 py-1 text-center cursor-pointer ${
-                    startDate &&
-                    startDate.getHours() === t.getHours() &&
-                    startDate.getMinutes() === t.getMinutes()
-                      ? 'bg-blue-100 text-blue-700 font-semibold'
-                      : 'hover:bg-gray-100'
-                  }`}
+                  className={`px-2 py-2 text-center cursor-pointer rounded transition-colors
+                    ${
+                      startDate &&
+                      startDate.getHours() === t.getHours() &&
+                      startDate.getMinutes() === t.getMinutes()
+                        ? 'bg-violet-600 text-white font-bold'
+                        : 'hover:bg-zinc-700 text-zinc-200'
+                    }
+                  `}
                   onClick={() => {
                     if (startDate) onStartDateChange(setTimeOnDate(startDate, t));
                     else onStartDateChange(t);
@@ -125,18 +140,20 @@ const EventDateTimePicker: React.FC<EventDateTimePickerProps> = ({
           {/* End time scroll (if enabled) */}
           {hasEnd && (
             <div>
-              <div className="text-xs font-medium text-gray-500 mb-1 text-center">End Time</div>
-              <div className="h-64 overflow-y-scroll border rounded-md bg-white w-24">
+              <div className="mb-2 text-xs font-semibold text-center text-zinc-400">End Time</div>
+              <div className="w-24 h-64 overflow-y-scroll border rounded-lg bg-zinc-800">
                 {timeOptions.map((t, i) => (
                   <div
                     key={i}
-                    className={`px-2 py-1 text-center cursor-pointer ${
-                      endDate &&
-                      endDate.getHours() === t.getHours() &&
-                      endDate.getMinutes() === t.getMinutes()
-                        ? 'bg-blue-100 text-blue-700 font-semibold'
-                        : 'hover:bg-gray-100'
-                    }`}
+                    className={`px-2 py-2 text-center cursor-pointer rounded transition-colors
+                      ${
+                        endDate &&
+                        endDate.getHours() === t.getHours() &&
+                        endDate.getMinutes() === t.getMinutes()
+                          ? 'bg-violet-600 text-white font-bold'
+                          : 'hover:bg-zinc-700 text-zinc-200'
+                      }
+                    `}
                     onClick={() => {
                       if (startDate && endDate) onEndDateChange(setTimeOnDate(endDate, t));
                       else if (startDate) onEndDateChange(setTimeOnDate(startDate, t));

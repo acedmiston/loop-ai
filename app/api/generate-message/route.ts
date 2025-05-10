@@ -3,7 +3,7 @@ import openai from '@/lib/openai';
 
 export async function POST(req: Request) {
   try {
-    const { input, tone, location } = await req.json();
+    const { input, tone, location, displayTime, displayDate } = await req.json();
 
     if (!input) {
       console.error('Missing input in request body');
@@ -24,6 +24,13 @@ export async function POST(req: Request) {
       prompt += `
     The message should either be addressed to "friends" or left generic—no formal greetings or signatures.
     `;
+    }
+
+    if (displayDate) {
+      prompt += `\n\nWhen mentioning the event date, use this exact format: ${displayDate}. Do not reformat it.`;
+    }
+    if (displayTime) {
+      prompt += `\n\nWhen mentioning the event time, use this exact format: ${displayTime}. Do not reformat it.`;
     }
 
     prompt += `

@@ -16,31 +16,68 @@ import { Guest } from '@/types/event';
 import EventCard from './EventCard';
 import EventDateTimeModal from './EventDateTimeModal';
 import 'react-datepicker/dist/react-datepicker.css';
+import { InferType } from 'yup';
+import { DateTime } from 'luxon';
+import * as Select from '@radix-ui/react-select';
+import { ChevronDownIcon } from 'lucide-react';
 
-type FormData = {
-  title: string;
-  date: string;
-  start_time: string;
-  end_time?: string;
-  input: string;
-  guests: string[];
-  tone: string;
+const eventSchema = yup
+  .object({
+    title: yup.string().required('Title is required'),
+    date: yup.string().required('Date is required'),
+    start_time: yup.string().required('Start time is required'),
+    input: yup.string().required('Event details are required'),
+    guests: yup
+      .array()
+      .of(yup.string().required())
+      .min(1, 'At least one guest is required')
+      .default([]),
+    tone: yup.string().required('Tone is required'),
+  })
+  .required();
+
+// Use Yup's inferred type for the form data, and extend with location fields if needed
+export type EventFormData = InferType<typeof eventSchema> & {
   location?: string;
+  end_time?: string;
 };
 
-const eventSchema = yup.object({
-  title: yup.string().required('Title is required'),
-  date: yup.string().required('Date is required'),
-  start_time: yup.string().required('Start time is required'),
-  end_time: yup.string().nullable(), // Make end_time optional and nullable
-  input: yup.string().required('Event details are required'),
-  guests: yup
-    .array()
-    .of(yup.string().required())
-    .min(1, 'At least one guest is required')
-    .default([]),
-  tone: yup.string().required('Tone is required'),
-});
+// Helper to format time in AM/PM using Luxon
+function formatTimeAMPM(time: string) {
+  if (!time) return '';
+  try {
+    return DateTime.fromFormat(time, 'HH:mm').toFormat('h:mm a');
+  } catch {
+    return time;
+  }
+}
+
+// Helper to format date as 'Thursday, May 5th'
+function formatDateWithOrdinalLuxon(date: Date | null) {
+  if (!date) return '';
+  const day = date.getDate();
+  const ordinal = (n: number) => {
+    if (n > 3 && n < 21) return 'th';
+    switch (n % 10) {
+      case 1:
+        return 'st';
+      case 2:
+        return 'nd';
+      case 3:
+        return 'rd';
+      default:
+        return 'th';
+    }
+  };
+  return DateTime.fromJSDate(date).toFormat("cccc, LLLL d'") + ordinal(day);
+}
+
+// Helper to personalize message preview (reused from SendTextModal)
+function getPersonalizedPreview(message: string, guests: Guest[], selectedPhones: string[]) {
+  const previewGuest = guests.find(g => selectedPhones.includes(g.phone)) || guests[0] || {};
+  const previewName = previewGuest.first_name || previewGuest.name || 'friend';
+  return message.replace(/\[Name\]/g, previewName);
+}
 
 export default function EventForm() {
   const router = useRouter();
@@ -68,13 +105,13 @@ export default function EventForm() {
     setValue,
     getValues,
     formState: { errors },
-  } = useForm<FormData>({
+  } = useForm<EventFormData>({
     resolver: yupResolver(eventSchema),
     defaultValues: {
       title: '',
       date: '',
       start_time: '',
-      end_time: '',
+      end_time: '', // use empty string as default
       input: '',
       tone: 'friendly',
       guests: [],
@@ -191,14 +228,24 @@ export default function EventForm() {
           msg = `Hey friends! ${msg}`;
         }
       }
-      let input = `Event Title: ${values.title}\nDate: ${values.date}\nStart Time: ${values.start_time}`;
+      let input = `Event Title: ${values.title}\nDate: ${values.date}\nStart Time: ${formatTimeAMPM(values.start_time)}`;
       if (hasEndTime && values.end_time) {
-        input += `\nEnd Time: ${values.end_time}`;
+        input += `\nEnd Time: ${formatTimeAMPM(values.end_time)}`;
       }
       input += `\nDetails: ${msg}`;
       const promptPersonalize = personalize
         ? "\n\nPersonalize the message for each guest by including their first name at the start of the message using the placeholder [Name]. For example: 'Hi [Name], ...'. Do not use any other greeting or signature. Only use the placeholder, do not use a real name."
         : '';
+      // --- Luxon displayTime and displayDate logic ---
+      let displayTime = '';
+      let displayDate = '';
+      if (startDate) {
+        displayTime = DateTime.fromJSDate(startDate).toFormat('h:mm a');
+        if (hasEndTime && endDate) {
+          displayTime += ` – ${DateTime.fromJSDate(endDate).toFormat('h:mm a')}`;
+        }
+        displayDate = formatDateWithOrdinalLuxon(startDate);
+      }
       const response = await fetch('/api/generate-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -207,6 +254,8 @@ export default function EventForm() {
           tone,
           personalize,
           location: location || undefined,
+          displayTime,
+          displayDate,
         }),
       });
       const data = await response.json();
@@ -222,26 +271,16 @@ export default function EventForm() {
     setGenerating(false);
   };
 
-  const onSubmit: SubmitHandler<FormData> = async data => {
+  const onSubmit: SubmitHandler<EventFormData> = async data => {
     setIsSubmitting(true);
+    const payload = {
+      ...data,
+      end_time: data.end_time ? data.end_time : undefined, // treat '' as undefined
+    };
 
     try {
-      const payload: {
-        title: string;
-        date: string;
-        start_time: string;
-        end_time: string | undefined;
-        input: string;
-        guests: string[];
-        tone: string;
-        message: string;
-        location: string;
-        location_lat: number | undefined;
-        location_lng: number | undefined;
-        personalize: boolean;
-      } = {
-        ...data,
-        end_time: hasEndTime && data.end_time ? data.end_time : undefined,
+      const finalPayload = {
+        ...payload,
         guests: selectedGuests,
         message: message.trim(),
         location,
@@ -255,7 +294,7 @@ export default function EventForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(finalPayload),
       });
 
       if (!res.ok) throw new Error('Failed to create event');
@@ -267,13 +306,8 @@ export default function EventForm() {
 
       toast('Event created successfully!', {
         description: 'Your event has been created and guests will be notified.',
-        action: {
-          label: 'Go to Dashboard',
-          onClick: () => router.push('/dashboard'),
-        },
       });
-
-      setTimeout(() => router.push('/dashboard'), 3000);
+      router.push('/dashboard');
     } catch (err) {
       toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -338,7 +372,7 @@ export default function EventForm() {
                   </Label>
                   <button
                     type="button"
-                    className="w-full px-3 py-2 text-left bg-white border rounded-md hover:bg-gray-50"
+                    className={`w-full px-3 py-2 text-left rounded-md border bg-transparent shadow-xs transition-[color,box-shadow] outline-none h-9 min-w-0 text-base md:text-sm border-input focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive ${!startDate ? 'text-muted-foreground' : 'text-foreground'}`}
                     onClick={() => setShowDateModal(true)}
                   >
                     {startDate ? (
@@ -359,7 +393,7 @@ export default function EventForm() {
                         </div>
                       </>
                     ) : (
-                      'Select date & start time'
+                      'Select Date & Time'
                     )}
                   </button>
                   {showDateModal && (
@@ -409,7 +443,7 @@ export default function EventForm() {
                     setLocationLat(place.center[1]);
                   }
                 }}
-                placeholder="Event Location"
+                placeholder="Where will this take place?"
               />
             </div>
             {/* Guests Section */}
@@ -417,7 +451,7 @@ export default function EventForm() {
               <Label htmlFor="guests" className="block font-medium text-md">
                 Friends to notify
               </Label>
-              <div className="p-2 border rounded-md border-input">
+              <div>
                 <GuestSelector
                   guests={guests}
                   selected={selectedGuests}
@@ -448,17 +482,48 @@ export default function EventForm() {
               <Label htmlFor="tone" className="block font-medium text-md">
                 Tone
               </Label>
-              <select
-                id="tone"
-                className="w-full h-12 px-2 py-3 border rounded-md text-md"
-                value={tone}
-                onChange={e => setTone(e.target.value)}
-              >
-                <option value="friendly">Friendly</option>
-                <option value="formal">Formal</option>
-                <option value="casual">Casual</option>
-                <option value="apologetic">Apologetic</option>
-              </select>
+              <Select.Root value={tone} onValueChange={setTone}>
+                <Select.Trigger
+                  id="tone"
+                  className="w-full flex items-center justify-between px-2 pr-4 h-9 text-sm border rounded-md bg-transparent border-input text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
+                  aria-label="Tone"
+                >
+                  <Select.Value placeholder="Select tone" />
+                  <Select.Icon className="text-muted-foreground">
+                    <ChevronDownIcon size={18} />
+                  </Select.Icon>
+                </Select.Trigger>
+                <Select.Portal>
+                  <Select.Content className="z-50 bg-white border rounded-md shadow-lg">
+                    <Select.Viewport className="p-1">
+                      <Select.Item
+                        value="friendly"
+                        className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
+                      >
+                        <Select.ItemText>Friendly</Select.ItemText>
+                      </Select.Item>
+                      <Select.Item
+                        value="formal"
+                        className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
+                      >
+                        <Select.ItemText>Formal</Select.ItemText>
+                      </Select.Item>
+                      <Select.Item
+                        value="casual"
+                        className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
+                      >
+                        <Select.ItemText>Casual</Select.ItemText>
+                      </Select.Item>
+                      <Select.Item
+                        value="apologetic"
+                        className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
+                      >
+                        <Select.ItemText>Apologetic</Select.ItemText>
+                      </Select.Item>
+                    </Select.Viewport>
+                  </Select.Content>
+                </Select.Portal>
+              </Select.Root>
             </div>
             {/* Personalize checkbox and AI generation button */}
             <div className="flex items-center justify-between gap-2 mt-2">
@@ -543,24 +608,64 @@ export default function EventForm() {
               <div className="mb-3">
                 <label className="block mb-1 font-medium">Recipients</label>
                 <div className="flex flex-wrap gap-2">
-                  {selectedGuestObjects.map(g => (
-                    <span
-                      key={g.phone}
-                      className="inline-flex items-center px-2 py-1 text-xs bg-blue-100 rounded-full"
-                    >
-                      {g.name || g.first_name || g.phone}
-                    </span>
-                  ))}
+                  {guests
+                    .filter(g => selectedGuests.includes(g.phone))
+                    .map(g => (
+                      <label
+                        key={g.phone}
+                        className={`flex items-center gap-1 text-sm ${g.opted_out ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={
+                          g.opted_out ? 'This guest has opted out and cannot receive messages.' : ''
+                        }
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedGuests.includes(g.phone)}
+                          onChange={e => {
+                            setSelectedGuests(phones =>
+                              e.target.checked
+                                ? [...phones, g.phone]
+                                : phones.filter(p => p !== g.phone)
+                            );
+                          }}
+                          disabled={g.opted_out}
+                        />
+                        {g.name || g.first_name || g.phone}
+                        {g.opted_out && (
+                          <span className="ml-1 px-1 py-0.5 text-xs bg-gray-200 text-gray-600 rounded">
+                            Opted out
+                          </span>
+                        )}
+                      </label>
+                    ))}
                 </div>
+                {/* Show a warning if any selected guests are opted out */}
+                {guests.some(g => selectedGuests.includes(g.phone) && g.opted_out) && (
+                  <div className="mt-2 text-xs text-red-600">
+                    Some selected guests have opted out and will not receive messages.
+                  </div>
+                )}
               </div>
               <div className="mb-3">
                 <label className="block mb-1 font-medium">Message</label>
+                <div className="mb-2 text-xs text-gray-500">
+                  (For your last minute edits before sending, just don't remove{' '}
+                  <span className="font-bold">[Name]</span> to keep it personalized!)
+                </div>
                 <Textarea
                   value={message}
                   onChange={e => setMessage(e.target.value)}
                   rows={4}
                   className="w-full"
                 />
+              </div>
+              <div className="mb-3">
+                <div className="px-4 py-2 text-blue-800 border border-blue-200 rounded-lg bg-blue-50">
+                  <span className="text-sm font-bold">Preview:</span>{' '}
+                  <div className="text-sm text-gray-700">
+                    {getPersonalizedPreview(message, guests, selectedGuests)}
+                  </div>
+                </div>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setActiveTab('details')}>
@@ -600,7 +705,7 @@ export default function EventForm() {
                 title: getValues('title'),
                 date: getValues('date'),
                 start_time: getValues('start_time'),
-                end_time: hasEndTime ? getValues('end_time') : undefined,
+                end_time: hasEndTime && getValues('end_time') ? getValues('end_time') : undefined,
                 tone,
                 message,
                 createdAt: new Date().toISOString(),
@@ -609,6 +714,7 @@ export default function EventForm() {
                 location_lat: locationLat,
                 location_lng: locationLng,
               }}
+              disableActions={true}
             />
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setActiveTab('send')}>

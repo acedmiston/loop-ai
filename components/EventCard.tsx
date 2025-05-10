@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Event } from '@/types/event';
-import { format, formatDistanceToNow } from 'date-fns';
+import { DateTime } from 'luxon';
 import Image from 'next/image';
 
 type EventCardProps = {
@@ -14,7 +14,8 @@ export default function EventCard({
   event,
   onEdit,
   onResend,
-}: EventCardProps & { onResend?: () => void }) {
+  disableActions = false,
+}: EventCardProps & { onResend?: () => void; disableActions?: boolean }) {
   // Prepare guest names
   const guestNames = event.guests
     .map(g => [g.first_name, g.last_name].filter(Boolean).join(' ').trim())
@@ -36,30 +37,35 @@ export default function EventCard({
     <div className="p-8 space-y-4 transition-shadow bg-white border rounded-lg shadow-sm hover:shadow-md h-[500px] flex flex-col w-full max-w-[520px]">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-lg font-semibold leading-tight text-blue-600">{event.title}</h3>
-        <button
-          className="px-2 py-1 text-sm text-blue-600 rounded-sm hover:underline outline-1 outline-blue-600"
-          onClick={() => onEdit?.(event)}
-          type="button"
-        >
-          Edit Event
-        </button>
+        {!disableActions && (
+          <button
+            className="px-2 py-1 text-sm text-blue-600 rounded-sm hover:underline outline-1 outline-blue-600"
+            onClick={() => onEdit?.(event)}
+            type="button"
+          >
+            Edit Event
+          </button>
+        )}
       </div>
 
       <div className="space-y-1 text-sm text-gray-600">
         <div className="flex gap-4">
           {event.date && (
             <p>
-              <strong>Date:</strong> {format(new Date(event.date + 'T00:00:00'), 'PPP')}
+              <strong>Date:</strong>{' '}
+              {DateTime.fromISO(event.date).toLocaleString(DateTime.DATE_MED)}
             </p>
           )}
           {event.start_time && (
             <p>
-              <strong>Start:</strong> {event.start_time}
+              <strong>Start:</strong>{' '}
+              {DateTime.fromFormat(event.start_time, 'HH:mm').toFormat('h:mm a')}
             </p>
           )}
           {event.end_time && (
             <p>
-              <strong>End:</strong> {event.end_time}
+              <strong>End:</strong>{' '}
+              {DateTime.fromFormat(event.end_time, 'HH:mm').toFormat('h:mm a')}
             </p>
           )}
         </div>
@@ -143,15 +149,17 @@ export default function EventCard({
         <span className="px-0 py-1 text-xs text-gray-500 bg-white rounded-full">
           Created:{' '}
           {event.createdAt
-            ? formatDistanceToNow(new Date(event.createdAt), { addSuffix: true })
+            ? DateTime.fromISO(event.createdAt).toRelative({ base: DateTime.now() })
             : 'Recently'}
         </span>
-        <button
-          className="px-2 py-1 text-xs text-white bg-blue-600 rounded-sm d-sm hover:underline"
-          onClick={onResend}
-        >
-          Resend messages
-        </button>
+        {!disableActions && (
+          <button
+            className="px-2 py-1 text-xs text-white bg-blue-600 rounded-sm d-sm hover:underline"
+            onClick={onResend}
+          >
+            Resend messages
+          </button>
+        )}
       </div>
     </div>
   );

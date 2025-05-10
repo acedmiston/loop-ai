@@ -48,7 +48,7 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="relative flex flex-col items-center w-full max-w-xl p-6 bg-white shadow-xl rounded-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between w-full mb-4">
+        <div className="flex items-center justify-between w-full">
           <div className="flex items-center">
             <button
               className={`px-3 py-1 rounded-t-md font-medium ${activeTab === 'start' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}
@@ -60,21 +60,25 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
             {hasEnd ? (
               <button
                 className={`ml-2 px-3 py-1 rounded-t-md font-medium ${activeTab === 'end' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}
-                onClick={() => setActiveTab('end')}
-                type="button"
-              >
-                End{' '}
-                <span
-                  className="ml-1 text-xs text-gray-400 cursor-pointer"
-                  onClick={e => {
+                onClick={e => {
+                  if (activeTab === 'end') {
                     e.stopPropagation();
                     setHasEnd(false);
                     setEndDate(null);
                     setActiveTab('start');
-                  }}
-                >
-                  × End
-                </span>
+                  } else {
+                    setActiveTab('end');
+                  }
+                }}
+                type="button"
+              >
+                {activeTab === 'end' ? (
+                  <span className="text-md" title="Remove end time">
+                    × End
+                  </span>
+                ) : (
+                  '+ End'
+                )}
               </button>
             ) : (
               <button
@@ -98,22 +102,23 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
             ×
           </button>
         </div>
-        <div className="flex justify-center w-full max-w-full">
+        <div className="flex w-full max-w-full gap-4">
           {/* Calendar */}
-          <div className="flex-shrink-0" style={{ minWidth: 288 }}>
+          <div className="flex-shrink-0 h-64" style={{ minWidth: 288 }}>
             <DatePicker
               selected={startDate}
               onChange={date => setStartDate(date as Date | null)}
               inline
-              calendarClassName="!w-72"
+              calendarClassName="!w-full !h-full !rounded-lg"
+              wrapperClassName="!w-[400px] !h-[400px]"
             />
           </div>
           {/* Time scrolls */}
-          <div className="flex max-w-full gap-0 overflow-x-auto">
+          <div className="flex max-w-full gap-3 -mt-5 overflow-x-auto">
             {/* Start time scroll */}
             <div style={{ minWidth: 96 }}>
               <div className="mb-1 text-xs font-medium text-center text-gray-500">Start Time</div>
-              <div className="w-24 h-64 overflow-y-scroll bg-white border rounded-l-md">
+              <div className="w-24 h-64 overflow-y-scroll bg-white border rounded-md">
                 {timeOptions.map((t, i) => (
                   <div
                     key={i}
@@ -138,7 +143,7 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
             {hasEnd && (
               <div style={{ minWidth: 96 }}>
                 <div className="mb-1 text-xs font-medium text-center text-gray-500">End Time</div>
-                <div className="w-24 h-64 overflow-y-scroll bg-white border-t border-b border-r rounded-r-md">
+                <div className="w-24 h-64 overflow-y-scroll bg-white border rounded-md">
                   {timeOptions.map((t, i) => (
                     <div
                       key={i}

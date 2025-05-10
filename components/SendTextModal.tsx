@@ -37,7 +37,7 @@ export default function SendTextModal({
       )) {
         // Prefer first_name, then name, then fallback
         const guestName = guest.first_name || guest.name || 'friend';
-        let personalizedMessage = message.replace(/\[Name\]/g, guestName);
+        const personalizedMessage = message.replace(/\[Name\]/g, guestName);
         let to = guest.phone;
         if (channel === 'whatsapp') {
           to = `whatsapp:${guest.phone.replace(/[^\d+]/g, '')}`;
@@ -144,7 +144,7 @@ export default function SendTextModal({
         <div className="mb-3">
           <label className="block mb-1 font-medium">Message</label>
           <div className="mb-2 text-xs text-gray-500">
-            (For your last minute edits before sending, just don't remove{' '}
+            (For your last minute edits before sending, just don&apos;t remove{' '}
             <span className="font-bold">[Name]</span> to keep it personalized!)
           </div>
           <Textarea

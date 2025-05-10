@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { DateTime } from 'luxon';
 import { Event } from '@/types/event';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -11,6 +12,8 @@ import { Label } from './ui/label';
 import LocationAutocomplete from './LocationAutocomplete';
 import EventDateTimeModal from './EventDateTimeModal';
 import 'react-datepicker/dist/react-datepicker.css';
+import * as Select from '@radix-ui/react-select';
+import { ChevronDownIcon } from 'lucide-react';
 
 export default function EditEventModal({
   event,
@@ -199,6 +202,34 @@ export default function EditEventModal({
         input += `\nEnd Time: ${endTime}`;
       }
       input += `\nDetails: ${msg}`;
+
+      // --- Luxon displayTime logic ---
+      let displayTime = '';
+      let displayDate = '';
+      if (startDate) {
+        displayTime = DateTime.fromJSDate(startDate).toFormat('h:mm a');
+        if (hasEndTime && endDate) {
+          displayTime += ` – ${DateTime.fromJSDate(endDate).toFormat('h:mm a')}`;
+        }
+        // Format: Thursday, May 5th
+        displayDate =
+          DateTime.fromJSDate(startDate).toFormat("cccc, LLLL d'") +
+          getOrdinal(startDate.getDate());
+      }
+      function getOrdinal(day: number) {
+        if (day > 3 && day < 21) return 'th';
+        switch (day % 10) {
+          case 1:
+            return 'st';
+          case 2:
+            return 'nd';
+          case 3:
+            return 'rd';
+          default:
+            return 'th';
+        }
+      }
+
       const response = await fetch('/api/generate-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -207,6 +238,8 @@ export default function EditEventModal({
           tone,
           personalize,
           location: location || undefined,
+          displayTime,
+          displayDate,
         }),
       });
       const data = await response.json();
@@ -255,7 +288,7 @@ export default function EditEventModal({
         </div>
         <div className="space-y-1">
           <Label htmlFor="edit-date-time" className="block font-medium text-md">
-            Event Date & Start Time
+            Event Date & Time
           </Label>
           <button
             type="button"
@@ -263,11 +296,11 @@ export default function EditEventModal({
             onClick={() => setShowDateModal(true)}
           >
             {startDate
-              ? `${startDate.toLocaleDateString()} ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-              : 'Select date & start time'}
+              ? `${DateTime.fromJSDate(startDate).toLocaleString(DateTime.DATE_MED)} ${DateTime.fromJSDate(startDate).toFormat('h:mm a')}`
+              : 'Select Date & Time'}
             {hasEndTime && endDate && (
               <span className="ml-2 text-gray-500">
-                — {endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                — {DateTime.fromJSDate(endDate).toFormat('h:mm a')}
               </span>
             )}
           </button>
@@ -309,7 +342,7 @@ export default function EditEventModal({
                 setLocationLat(place.center[1]);
               }
             }}
-            placeholder="Event Location"
+            placeholder="Where will this take place?"
           />
         </div>
         <div className="space-y-1">
@@ -333,17 +366,48 @@ export default function EditEventModal({
                 <Label htmlFor="edit-tone" className="block mb-1 text-sm font-small">
                   Message Tone
                 </Label>
-                <select
-                  id="edit-tone"
-                  className="w-full px-2 text-sm border rounded-md h-9"
-                  value={tone}
-                  onChange={e => setTone(e.target.value)}
-                >
-                  <option value="friendly">Friendly</option>
-                  <option value="formal">Formal</option>
-                  <option value="casual">Casual</option>
-                  <option value="apologetic">Apologetic</option>
-                </select>
+                <Select.Root value={tone} onValueChange={setTone}>
+                  <Select.Trigger
+                    id="edit-tone"
+                    className="w-full flex items-center justify-between px-2 pr-4 h-9 text-sm border rounded-md bg-transparent border-input text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
+                    aria-label="Tone"
+                  >
+                    <Select.Value placeholder="Select tone" />
+                    <Select.Icon className="ml-2 text-muted-foreground">
+                      <ChevronDownIcon size={18} />
+                    </Select.Icon>
+                  </Select.Trigger>
+                  <Select.Portal>
+                    <Select.Content className="z-50 bg-white border rounded-md shadow-lg">
+                      <Select.Viewport className="p-1">
+                        <Select.Item
+                          value="friendly"
+                          className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
+                        >
+                          <Select.ItemText>Friendly</Select.ItemText>
+                        </Select.Item>
+                        <Select.Item
+                          value="formal"
+                          className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
+                        >
+                          <Select.ItemText>Formal</Select.ItemText>
+                        </Select.Item>
+                        <Select.Item
+                          value="casual"
+                          className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
+                        >
+                          <Select.ItemText>Casual</Select.ItemText>
+                        </Select.Item>
+                        <Select.Item
+                          value="apologetic"
+                          className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
+                        >
+                          <Select.ItemText>Apologetic</Select.ItemText>
+                        </Select.Item>
+                      </Select.Viewport>
+                    </Select.Content>
+                  </Select.Portal>
+                </Select.Root>
               </div>
             </div>
             {/* Personalize checkbox before AI generation */}
