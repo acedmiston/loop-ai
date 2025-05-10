@@ -27,6 +27,7 @@ export default function SendTextModal({
   const { user } = useUser();
 
   const handleSend = async () => {
+    console.log('Send button clicked');
     setSending(true);
     setError(null);
     setSuccess(false);
@@ -40,7 +41,14 @@ export default function SendTextModal({
         const personalizedMessage = message.replace(/\[Name\]/g, guestName);
         let to = guest.phone;
         if (channel === 'whatsapp') {
-          to = `whatsapp:${guest.phone.replace(/[^\d+]/g, '')}`;
+          // Ensure E.164 format (US default if 10 digits)
+          let phone = guest.phone;
+          if (/^\d{10}$/.test(phone)) {
+            phone = '+1' + phone;
+          } else if (!phone.startsWith('+')) {
+            phone = '+' + phone;
+          }
+          to = `whatsapp:${phone}`;
         }
         const res = await fetch('/api/send-sms', {
           method: 'POST',
@@ -188,6 +196,11 @@ export default function SendTextModal({
         </div>
         {error && <div className="mb-2 text-sm text-red-600">{error}</div>}
         {success && <div className="mb-2 text-sm text-green-600">Message sent!</div>}
+        {/* Debug state for troubleshooting */}
+        <div className="mb-2 text-xs text-gray-500">
+          <div>selectedPhones: {JSON.stringify(selectedPhones)}</div>
+          <div>message: "{message}"</div>
+        </div>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onClose} disabled={sending}>
             Cancel

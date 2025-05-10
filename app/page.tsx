@@ -30,7 +30,7 @@ export default function LandingPage() {
 
         <div className="mt-10">
           <Link
-            href="/start"
+            href="/sign-up"
             className="px-6 py-3 text-lg text-white transition-colors bg-blue-600 rounded-md hover:bg-blue-700"
           >
             Get Started

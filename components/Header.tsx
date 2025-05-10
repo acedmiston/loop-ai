@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user } = useUser();
+  const { user, loading } = useUser();
   const supabase = createSupabaseClient();
   const [userProfile, setUserProfile] = useState<Record<string, unknown> | null>(null);
 
@@ -36,63 +36,65 @@ export default function Header() {
     setTimeout(() => router.push('/login'), 800);
   };
 
+  // Only show nav if user is logged in and not loading
+  if (loading || !user) {
+    // Optionally, you can return a skeleton or null
+    return null;
+  }
+
   return (
-    <header className="sticky top-0 z-50 w-full bg-white border-b shadow-sm">
-      <div className="flex items-center justify-between px-4 py-2 mx-auto">
-        <div className="relative flex items-center gap-8">
-          <div className="absolute -top-3">
+    <header className="sticky top-0 z-50 w-full bg-white border-b shadow-sm min-h-[56px]">
+      <div className="flex items-center justify-between px-4 py-2 mx-auto min-h-[56px]">
+        <div className="relative flex items-center gap-8 min-h-[40px]">
+          <div className="absolute -top-1 min-w-[48px] min-h-[40px] flex items-center justify-center">
             <Logo size="sm" />
           </div>
-          {user && (
-            <nav className="items-center hidden gap-6 text-sm text-gray-600 sm:flex ml-[60px]">
-              <a
-                href="/dashboard"
-                className={`transition hover:text-blue-600 ${
-                  pathname === '/dashboard' ? 'text-blue-600 font-medium' : ''
-                }`}
-              >
-                Dashboard
-              </a>
-              <a
-                href="/create-event"
-                className={`transition hover:text-blue-600 ${
-                  pathname === '/create-event' ? 'text-blue-600 font-medium' : ''
-                }`}
-              >
-                New Event
-              </a>
-              <a
-                href="/contacts"
-                className={`transition hover:text-blue-600 ${
-                  pathname === '/contacts' ? 'text-blue-600 font-medium' : ''
-                }`}
-              >
-                Friends
-              </a>
-              <a
-                href="/settings"
-                className={`transition hover:text-blue-600 ${
-                  pathname === '/settings' ? 'text-blue-600 font-medium' : ''
-                }`}
-              >
-                Settings
-              </a>
-            </nav>
-          )}
+          <nav className="items-center hidden gap-6 text-sm text-gray-600 sm:flex ml-[60px]">
+            <a
+              href="/dashboard"
+              className={`transition hover:text-blue-600 ${
+                pathname === '/dashboard' ? 'text-blue-600 font-medium' : ''
+              }`}
+            >
+              Dashboard
+            </a>
+            <a
+              href="/create-event"
+              className={`transition hover:text-blue-600 ${
+                pathname === '/create-event' ? 'text-blue-600 font-medium' : ''
+              }`}
+            >
+              New Event
+            </a>
+            <a
+              href="/contacts"
+              className={`transition hover:text-blue-600 ${
+                pathname === '/contacts' ? 'text-blue-600 font-medium' : ''
+              }`}
+            >
+              Friends
+            </a>
+            <a
+              href="/settings"
+              className={`transition hover:text-blue-600 ${
+                pathname === '/settings' ? 'text-blue-600 font-medium' : ''
+              }`}
+            >
+              Settings
+            </a>
+          </nav>
         </div>
-        {user && (
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-gray-700">
-              Signed in as{' '}
-              {typeof userProfile?.first_name === 'string' && userProfile.first_name.trim()
-                ? userProfile.first_name
-                : user.email}
-            </span>
-            <Button variant="outline" size="sm" onClick={handleLogout}>
-              Log out
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-4 text-sm">
+          <span className="text-gray-700">
+            Signed in as{' '}
+            {typeof userProfile?.first_name === 'string' && userProfile.first_name.trim()
+              ? userProfile.first_name
+              : user.email}
+          </span>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            Log out
+          </Button>
+        </div>
       </div>
     </header>
   );

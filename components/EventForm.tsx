@@ -36,7 +36,6 @@ const eventSchema = yup
   })
   .required();
 
-// Use Yup's inferred type for the form data, and extend with location fields if needed
 export type EventFormData = InferType<typeof eventSchema> & {
   location?: string;
   end_time?: string;
@@ -111,7 +110,7 @@ export default function EventForm() {
       title: '',
       date: '',
       start_time: '',
-      end_time: '', // use empty string as default
+      end_time: '',
       input: '',
       tone: 'friendly',
       guests: [],
