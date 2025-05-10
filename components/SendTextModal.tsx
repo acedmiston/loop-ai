@@ -196,11 +196,6 @@ export default function SendTextModal({
         </div>
         {error && <div className="mb-2 text-sm text-red-600">{error}</div>}
         {success && <div className="mb-2 text-sm text-green-600">Message sent!</div>}
-        {/* Debug state for troubleshooting */}
-        <div className="mb-2 text-xs text-gray-500">
-          <div>selectedPhones: {JSON.stringify(selectedPhones)}</div>
-          <div>message: "{message}"</div>
-        </div>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onClose} disabled={sending}>
             Cancel

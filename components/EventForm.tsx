@@ -648,7 +648,7 @@ export default function EventForm() {
               <div className="mb-3">
                 <label className="block mb-1 font-medium">Message</label>
                 <div className="mb-2 text-xs text-gray-500">
-                  (For your last minute edits before sending, just don't remove{' '}
+                  (For your last minute edits before sending, just don&apos;t remove{' '}
                   <span className="font-bold">[Name]</span> to keep it personalized!)
                 </div>
                 <Textarea
