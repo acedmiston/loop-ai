@@ -30,7 +30,7 @@ export default function DashboardContent() {
       const { data, error } = await supabase
         .from('events')
         .select(
-          'id, input, tone, message, created_at, title, date, start_time, end_time, location, location_lat, location_lng, guests(*)'
+          'id, tone, message, created_at, title, date, start_time, end_time, location, location_lat, location_lng, guests(*)'
         )
         .order('created_at', { ascending: false });
 
@@ -38,7 +38,6 @@ export default function DashboardContent() {
         setEvents(
           data.map(e => ({
             id: e.id,
-            input: e.input,
             tone: e.tone,
             message: e.message,
             createdAt: e.created_at,

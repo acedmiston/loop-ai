@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import * as yup from 'yup';
-import { yupResolver } from '@hookform/resolvers/yup';
+// import * as yup from 'yup';
 import GuestSelector from './GuestSelector';
 import LocationAutocomplete from './LocationAutocomplete';
 import { Input } from '@/components/ui/input';
@@ -16,60 +15,37 @@ import { Guest } from '@/types/event';
 import EventCard from './EventCard';
 import EventDateTimeModal from './EventDateTimeModal';
 import 'react-datepicker/dist/react-datepicker.css';
-import { InferType } from 'yup';
+// import { InferType } from 'yup';
 import { DateTime } from 'luxon';
 import * as Select from '@radix-ui/react-select';
 import { ChevronDownIcon } from 'lucide-react';
 
-const eventSchema = yup
-  .object({
-    title: yup.string().required('Title is required'),
-    date: yup.string().required('Date is required'),
-    start_time: yup.string().required('Start time is required'),
-    input: yup.string().required('Event details are required'),
-    guests: yup
-      .array()
-      .of(yup.string().required())
-      .min(1, 'At least one guest is required')
-      .default([]),
-    tone: yup.string().required('Tone is required'),
-  })
-  .required();
+// Commenting out the yup event schema temporarily for debugging purposes
+// const eventSchema = yup
+//   .object({
+//     title: yup.string().required('Title is required'),
+//     date: yup.string().required('Date is required'),
+//     start_time: yup.string().required('Start time is required'),
+//     input: yup.string().required('Event details are required'),
+//     guests: yup
+//       .array()
+//       .of(yup.string().required())
+//       .min(1, 'At least one guest is required')
+//       .default([]),
+//     tone: yup.string().required('Tone is required'),
+//   })
+//   .required();
 
-export type EventFormData = InferType<typeof eventSchema> & {
+export type EventFormData = {
+  title: string;
+  date: string;
+  start_time: string;
+  message: string;
+  guests: string[];
+  tone: string;
   location?: string;
   end_time?: string;
 };
-
-// Helper to format time in AM/PM using Luxon
-function formatTimeAMPM(time: string) {
-  if (!time) return '';
-  try {
-    return DateTime.fromFormat(time, 'HH:mm').toFormat('h:mm a');
-  } catch {
-    return time;
-  }
-}
-
-// Helper to format date as 'Thursday, May 5th'
-function formatDateWithOrdinalLuxon(date: Date | null) {
-  if (!date) return '';
-  const day = date.getDate();
-  const ordinal = (n: number) => {
-    if (n > 3 && n < 21) return 'th';
-    switch (n % 10) {
-      case 1:
-        return 'st';
-      case 2:
-        return 'nd';
-      case 3:
-        return 'rd';
-      default:
-        return 'th';
-    }
-  };
-  return DateTime.fromJSDate(date).toFormat("cccc, LLLL d'") + ordinal(day);
-}
 
 // Helper to personalize message preview (reused from SendTextModal)
 function getPersonalizedPreview(message: string, guests: Guest[], selectedPhones: string[]) {
@@ -105,13 +81,12 @@ export default function EventForm() {
     getValues,
     formState: { errors },
   } = useForm<EventFormData>({
-    resolver: yupResolver(eventSchema),
     defaultValues: {
       title: '',
       date: '',
       start_time: '',
       end_time: '',
-      input: '',
+      message: '',
       tone: 'friendly',
       guests: [],
     },
@@ -148,7 +123,7 @@ export default function EventForm() {
           return 'th';
       }
     };
-    return `${days[date.getDay()]}, ${months[date.getMonth()]} ${day}${ordinal(day)}`;
+    return `${days[date.getDay()]}, ${months[date.getMonth()]} ${day}${ordinal(day)}:`;
   }
 
   // Fetch guests on mount
@@ -212,39 +187,40 @@ export default function EventForm() {
     }
     setGenerating(true);
     try {
-      // Always construct the message with the correct greeting based on personalize
       let msg = message.trim();
       if (personalize) {
-        // Remove any existing greeting and ensure [Name] is at the start
-        msg = msg.replace(/^Hey friends![,\s]*/i, '');
-        if (!msg.startsWith('Hi [Name],')) {
-          msg = `Hi [Name], ${msg}`.replace(/^\s+/, '');
+        if (!msg.includes('[Name]')) {
+          msg = `Hi [Name], ${msg}`;
         }
       } else {
-        // Remove any personalized greeting and use Hey friends!
-        msg = msg.replace(/^Hi \[Name\],?\s*/i, 'Hey friends! ');
-        if (!msg.startsWith('Hey friends!')) {
-          msg = `Hey friends! ${msg}`;
-        }
+        msg = msg.replace(/Hi \[Name\][,!]?\s*|Hey \[Name\][,!]?\s*/i, 'Hey friends! ');
       }
-      let input = `Event Title: ${values.title}\nDate: ${values.date}\nStart Time: ${formatTimeAMPM(values.start_time)}`;
-      if (hasEndTime && values.end_time) {
-        input += `\nEnd Time: ${formatTimeAMPM(values.end_time)}`;
+
+      const startDateTime = DateTime.fromISO(`${values.date}T${values.start_time}`);
+      const endDateTime = values.end_time
+        ? DateTime.fromISO(`${values.date}T${values.end_time}`)
+        : null;
+
+      const formattedStartTime = startDateTime.toFormat('h:mm a');
+      const formattedEndTime = endDateTime ? endDateTime.toFormat('h:mm a') : null;
+
+      let displayTime = formattedStartTime;
+      if (hasEndTime && formattedEndTime) {
+        displayTime += ` - ${formattedEndTime}`;
+      }
+
+      const displayDate = startDateTime.toFormat('cccc, LLLL d');
+
+      let input = `Event Title: ${values.title}\nDate: ${displayDate}\nStart Time: ${formattedStartTime}`;
+      if (hasEndTime && formattedEndTime) {
+        input += `\nEnd Time: ${formattedEndTime}`;
       }
       input += `\nDetails: ${msg}`;
+
       const promptPersonalize = personalize
-        ? "\n\nPersonalize the message for each guest by including their first name at the start of the message using the placeholder [Name]. For example: 'Hi [Name], ...'. Do not use any other greeting or signature. Only use the placeholder, do not use a real name."
+        ? "\n\nPersonalize the message for each guest by including their first name at the start of the message using the placeholder [Name]. For example: 'Hi [Name]! ...'. Do not use any other greeting or signature. Only use the placeholder, do not use a real name."
         : '';
-      // --- Luxon displayTime and displayDate logic ---
-      let displayTime = '';
-      let displayDate = '';
-      if (startDate) {
-        displayTime = DateTime.fromJSDate(startDate).toFormat('h:mm a');
-        if (hasEndTime && endDate) {
-          displayTime += ` – ${DateTime.fromJSDate(endDate).toFormat('h:mm a')}`;
-        }
-        displayDate = formatDateWithOrdinalLuxon(startDate);
-      }
+
       const response = await fetch('/api/generate-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -252,11 +228,13 @@ export default function EventForm() {
           input: input + promptPersonalize,
           tone,
           personalize,
-          location: location || undefined,
+          location,
           displayTime,
           displayDate,
+          message: msg, // Ensure message is included in the request body
         }),
       });
+
       const data = await response.json();
       if (data.message) {
         setMessage(data.message);
@@ -264,17 +242,19 @@ export default function EventForm() {
       } else {
         toast.error('Failed to generate message.');
       }
-    } catch {
-      toast.error('Error generating message.');
+    } catch (error) {
+      console.error('Error generating message:', error);
+      toast.error('An error occurred while generating the message.');
+    } finally {
+      setGenerating(false);
     }
-    setGenerating(false);
   };
 
   const onSubmit: SubmitHandler<EventFormData> = async data => {
     setIsSubmitting(true);
     const payload = {
       ...data,
-      end_time: data.end_time ? data.end_time : undefined, // treat '' as undefined
+      end_time: data.end_time ? data.end_time : undefined,
     };
 
     try {
@@ -285,7 +265,7 @@ export default function EventForm() {
         location,
         location_lat: locationLat,
         location_lng: locationLng,
-        personalize, // send this option to backend
+        personalize,
       };
 
       const res = await fetch('/api/create-event', {
@@ -296,17 +276,22 @@ export default function EventForm() {
         body: JSON.stringify(finalPayload),
       });
 
-      if (!res.ok) throw new Error('Failed to create event');
+      if (!res.ok) {
+        throw new Error('Failed to create event');
+      }
 
-      reset();
-      setSelectedGuests([]);
-      setMessage('');
-      localStorage.removeItem('event-form');
+      router.push('/dashboard');
+
+      setTimeout(() => {
+        reset();
+        setSelectedGuests([]);
+        setMessage('');
+        localStorage.removeItem('event-form');
+      }, 500);
 
       toast('Event created successfully!', {
         description: 'Your event has been created and guests will be notified.',
       });
-      router.push('/dashboard');
     } catch (err) {
       toast.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -349,85 +334,83 @@ export default function EventForm() {
         {/* Tab Content */}
         {activeTab === 'details' && (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Event Details */}
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <Label htmlFor="title" className="block font-medium text-md">
-                  Title
-                </Label>
-                <Input
-                  id="title"
-                  {...register('title', { required: true })}
-                  placeholder="e.g. Birthday Dinner"
-                />
-                {errors.title && (
-                  <p className="mt-1 text-sm text-red-500">{errors.title.message}</p>
-                )}
-              </div>
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <Label htmlFor="date-time" className="block font-medium text-md">
-                    Event Date & Time
-                  </Label>
-                  <button
-                    type="button"
-                    className={`w-full px-3 py-2 text-left rounded-md border bg-transparent shadow-xs transition-[color,box-shadow] outline-none h-9 min-w-0 text-base md:text-sm border-input focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive ${!startDate ? 'text-muted-foreground' : 'text-foreground'}`}
-                    onClick={() => setShowDateModal(true)}
-                  >
-                    {startDate ? (
-                      <>
-                        <div className="font-medium">{formatDateWithOrdinal(startDate)}</div>
-                        <div>
-                          {startDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                          {hasEndTime && endDate ? (
-                            <>
-                              {' '}
-                              <span className="mx-1">-</span>{' '}
-                              {endDate.toLocaleTimeString([], {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                              })}
-                            </>
-                          ) : null}
-                        </div>
-                      </>
-                    ) : (
-                      'Select Date & Time'
-                    )}
-                  </button>
-                  {showDateModal && (
-                    <EventDateTimeModal
-                      initialStartDate={startDate}
-                      initialEndDate={endDate}
-                      initialHasEnd={hasEndTime}
-                      onClose={() => setShowDateModal(false)}
-                      onSave={(start, end, hasEnd) => {
-                        setShowDateModal(false);
-                        setStartDate(start);
-                        setEndDate(end);
-                        setHasEndTime(hasEnd);
-                        if (start) {
-                          setValue('date', start.toISOString().slice(0, 10));
-                          setValue('start_time', start.toISOString().slice(11, 16));
-                        }
-                        if (hasEnd && end) {
-                          setValue('end_time', end.toISOString().slice(11, 16));
-                        } else {
-                          setValue('end_time', '');
-                        }
-                      }}
-                    />
-                  )}
-                  {errors.date && (
-                    <p className="mt-1 text-sm text-red-500">{errors.date.message}</p>
-                  )}
-                  {errors.start_time && (
-                    <p className="mt-1 text-sm text-red-500">{errors.start_time.message}</p>
-                  )}
-                </div>
-              </div>
+            {/* Event Title */}
+            <div className="space-y-1">
+              <Label htmlFor="title" className="block font-medium text-md">
+                Title
+              </Label>
+              <Input
+                id="title"
+                {...register('title', { required: true })}
+                placeholder="e.g. Birthday Dinner"
+              />
+              {errors.title && <p className="mt-1 text-sm text-red-500">{errors.title.message}</p>}
             </div>
-            {/* Location Section */}
+            {/* Event Date & Time */}
+            <div className="space-y-1">
+              <Label htmlFor="date-time" className="block font-medium text-md">
+                Event Date & Time
+              </Label>
+              <button
+                type="button"
+                className={`w-full px-3 py-2 text-left rounded-md border bg-transparent shadow-xs transition-[color,box-shadow] outline-none h-9 min-w-0 text-base md:text-sm border-input focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive ${!startDate ? 'text-muted-foreground' : 'text-foreground'}`}
+                onClick={() => setShowDateModal(true)}
+              >
+                {startDate ? (
+                  <div className="flex items-center gap-3">
+                    <span>{formatDateWithOrdinal(startDate)}</span>
+                    <span>
+                      {startDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                      {hasEndTime && endDate ? (
+                        <>
+                          {' '}
+                          <span className="mx-1">-</span>{' '}
+                          {endDate.toLocaleTimeString([], {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                          })}
+                        </>
+                      ) : null}
+                    </span>
+                  </div>
+                ) : (
+                  'Select Date & Time'
+                )}
+              </button>
+              {showDateModal && (
+                <EventDateTimeModal
+                  initialStartDate={startDate}
+                  initialEndDate={endDate}
+                  initialHasEnd={hasEndTime}
+                  onClose={() => setShowDateModal(false)}
+                  onSave={(start, end, hasEnd) => {
+                    setShowDateModal(false);
+                    setStartDate(start);
+                    setEndDate(end);
+                    setHasEndTime(hasEnd);
+                    if (start) {
+                      const startDateTime = DateTime.fromJSDate(start);
+                      const isoDate = startDateTime.toISODate();
+                      if (isoDate) {
+                        setValue('date', isoDate);
+                      }
+                      setValue('start_time', startDateTime.toFormat('HH:mm'));
+                    }
+                    if (hasEnd && end) {
+                      const endDateTime = DateTime.fromJSDate(end);
+                      setValue('end_time', endDateTime.toFormat('HH:mm'));
+                    } else {
+                      setValue('end_time', '');
+                    }
+                  }}
+                />
+              )}
+              {errors.date && <p className="mt-1 text-sm text-red-500">{errors.date.message}</p>}
+              {errors.start_time && (
+                <p className="mt-1 text-sm text-red-500">{errors.start_time.message}</p>
+              )}
+            </div>
+            {/* Location */}
             <div className="space-y-1">
               <Label htmlFor="location" className="block font-medium text-md">
                 Location
@@ -445,7 +428,7 @@ export default function EventForm() {
                 placeholder="Where will this take place?"
               />
             </div>
-            {/* Guests Section */}
+            {/* Friends to Notify */}
             <div className="space-y-1">
               <Label htmlFor="guests" className="block font-medium text-md">
                 Friends to notify
@@ -463,130 +446,114 @@ export default function EventForm() {
                 <p className="mt-1 text-sm text-red-500">{errors.guests.message as string}</p>
               )}
             </div>
-            {/* Event Details Textarea */}
-            <div className="space-y-1">
-              <Label htmlFor="input" className="block font-medium text-md">
-                Event details
-              </Label>
-              <Textarea
-                id="input"
-                {...register('input')}
-                rows={3}
-                placeholder="This will be used as the AI prompt or sent as the message."
-              />
-              {errors.input && <p className="mt-1 text-sm text-red-500">{errors.input.message}</p>}
-            </div>
-            {/* Tone and AI Message Generation */}
-            <div className="space-y-1">
-              <Label htmlFor="tone" className="block font-medium text-md">
-                Tone
-              </Label>
-              <Select.Root value={tone} onValueChange={setTone}>
-                <Select.Trigger
-                  id="tone"
-                  className="w-full flex items-center justify-between px-2 pr-4 h-9 text-sm border rounded-md bg-transparent border-input text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
-                  aria-label="Tone"
-                >
-                  <Select.Value placeholder="Select tone" />
-                  <Select.Icon className="text-muted-foreground">
-                    <ChevronDownIcon size={18} />
-                  </Select.Icon>
-                </Select.Trigger>
-                <Select.Portal>
-                  <Select.Content className="z-50 bg-white border rounded-md shadow-lg">
-                    <Select.Viewport className="p-1">
-                      <Select.Item
-                        value="friendly"
-                        className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
-                      >
-                        <Select.ItemText>Friendly</Select.ItemText>
-                      </Select.Item>
-                      <Select.Item
-                        value="formal"
-                        className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
-                      >
-                        <Select.ItemText>Formal</Select.ItemText>
-                      </Select.Item>
-                      <Select.Item
-                        value="casual"
-                        className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
-                      >
-                        <Select.ItemText>Casual</Select.ItemText>
-                      </Select.Item>
-                      <Select.Item
-                        value="apologetic"
-                        className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
-                      >
-                        <Select.ItemText>Apologetic</Select.ItemText>
-                      </Select.Item>
-                    </Select.Viewport>
-                  </Select.Content>
-                </Select.Portal>
-              </Select.Root>
-            </div>
-            {/* Personalize checkbox and AI generation button */}
-            <div className="flex items-center justify-between gap-2 mt-2">
-              <label className="flex items-center gap-2 m-0 text-sm">
-                <input
-                  type="checkbox"
-                  checked={personalize}
-                  onChange={e => setPersonalize(e.target.checked)}
-                  className="accent-blue-600"
-                />
-                Personalize with each friend&apos;s name
-              </label>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleGenerateMessage}
-                disabled={
-                  generating ||
-                  !getValues('title') ||
-                  !getValues('date') ||
-                  !getValues('start_time') ||
-                  (!getValues('end_time') && hasEndTime)
-                }
-                className="ml-2"
-              >
-                {generating ? 'Generating...' : 'Generate with AI'}
-              </Button>
-            </div>
+            {/* Message to Friends */}
             <div className="space-y-1">
               <Label htmlFor="message" className="block font-medium text-md">
-                Message (Editable)
+                Message to Friends
               </Label>
-              <p className="text-sm text-muted-foreground">
-                (Don&apos;t remove the [Name] placeholder, if you want them personalized!)
-              </p>
-              <Textarea
-                id="message"
-                className="py-3 text-lg"
-                value={message}
-                onChange={e => setMessage(e.target.value)}
-                rows={4}
-                placeholder="Event Message"
-              />
-              {message.trim() && (
-                <div className="p-4 mt-4 text-sm text-blue-900 border border-blue-200 rounded-md shadow-sm bg-blue-50">
-                  <span className="font-semibold text-blue-700">Preview:</span>{' '}
-                  {(() => {
-                    const firstSelected = guests.find(g => selectedGuests[0] === g.phone);
-                    const previewName =
-                      firstSelected?.first_name || firstSelected?.name || 'friend';
-                    let preview = message;
-                    if (personalize) {
-                      // Replace [Name] with previewName
-                      preview = preview.replace(/\[Name\]/g, previewName);
+              <div className="p-3 space-y-2 border rounded-lg bg-gray-50">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <Label htmlFor="tone" className="block mb-1 text-sm font-small">
+                      Message Tone
+                    </Label>
+                    <Select.Root value={tone} onValueChange={setTone}>
+                      <Select.Trigger
+                        id="tone"
+                        className="w-full flex items-center justify-between px-2 pr-4 h-9 text-sm border rounded-md bg-transparent border-input text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
+                        aria-label="Tone"
+                      >
+                        <Select.Value placeholder="Select tone" />
+                        <Select.Icon className="ml-2 text-muted-foreground">
+                          <ChevronDownIcon size={18} />
+                        </Select.Icon>
+                      </Select.Trigger>
+                      <Select.Portal>
+                        <Select.Content className="z-50 bg-white border rounded-md shadow-lg">
+                          <Select.Viewport className="p-1">
+                            <Select.Item
+                              value="friendly"
+                              className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
+                            >
+                              <Select.ItemText>Friendly</Select.ItemText>
+                            </Select.Item>
+                            <Select.Item
+                              value="formal"
+                              className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
+                            >
+                              <Select.ItemText>Formal</Select.ItemText>
+                            </Select.Item>
+                            <Select.Item
+                              value="casual"
+                              className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
+                            >
+                              <Select.ItemText>Casual</Select.ItemText>
+                            </Select.Item>
+                            <Select.Item
+                              value="apologetic"
+                              className="px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-blue-50"
+                            >
+                              <Select.ItemText>Apologetic</Select.ItemText>
+                            </Select.Item>
+                          </Select.Viewport>
+                        </Select.Content>
+                      </Select.Portal>
+                    </Select.Root>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-x-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={personalize}
+                      onChange={e => setPersonalize(e.target.checked)}
+                      className="accent-blue-600"
+                    />
+                    Personalize with each friend&apos;s name
+                  </label>
+                  <Button
+                    size="sm"
+                    onClick={handleGenerateMessage}
+                    disabled={
+                      generating ||
+                      !getValues('title')?.trim() ||
+                      !getValues('date')?.trim() ||
+                      !getValues('start_time')?.trim()
                     }
-                    return preview;
-                  })()}
+                  >
+                    {generating ? 'Generating...' : 'Generate with AI'}
+                  </Button>
                 </div>
-              )}
-              {personalize && (
-                <div className="mt-2 mb-2 text-sm text-blue-500">
-                  Note: Each friend will see their own name if personalized is checked!
-                </div>
-              )}
+                <Label htmlFor="message-preview" className="block mb-1 text-sm font-small">
+                  Message
+                </Label>
+                <p className="text-sm text-gray-500">
+                  (You can edit this, just don&apos;t remove <strong>[Name]</strong> if it&apos;s
+                  personalized!)
+                </p>
+                <Textarea
+                  id="message"
+                  className="py-3 mt-1 text-lg"
+                  value={message}
+                  onChange={e => setMessage(e.target.value)}
+                  rows={7}
+                  placeholder="Event Message"
+                />
+                {message.trim() && (
+                  <div className="p-4 text-sm text-blue-900 border border-blue-200 rounded-md shadow-sm bg-blue-50">
+                    <span className="font-semibold text-blue-700">Preview:</span>{' '}
+                    {(() => {
+                      const firstGuest = guests.find(g => selectedGuests[0] === g.phone);
+                      const previewName = firstGuest?.first_name || firstGuest?.name || 'friend';
+                      let preview = message;
+                      if (personalize) {
+                        preview = preview.replace(/\[Name\]/g, previewName);
+                      }
+                      return preview;
+                    })()}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex justify-end gap-4 pt-2">
               <Button
@@ -624,7 +591,7 @@ export default function EventForm() {
                             setSelectedGuests(phones =>
                               e.target.checked
                                 ? [...phones, g.phone]
-                                : phones.filter(p => p !== g.phone)
+                                : phones.filter((p: string) => p !== g.phone)
                             );
                           }}
                           disabled={g.opted_out}
@@ -700,13 +667,12 @@ export default function EventForm() {
             <EventCard
               event={{
                 id: 'preview',
-                input: getValues('input'),
+                message, // Use the message field
                 title: getValues('title'),
                 date: getValues('date'),
                 start_time: getValues('start_time'),
                 end_time: hasEndTime && getValues('end_time') ? getValues('end_time') : undefined,
                 tone,
-                message,
                 createdAt: new Date().toISOString(),
                 guests: selectedGuestObjects,
                 location,

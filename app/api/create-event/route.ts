@@ -10,7 +10,6 @@ export async function POST(req: Request) {
     start_time,
     end_time,
     tone,
-    input,
     guests,
     message,
     location,
@@ -19,7 +18,7 @@ export async function POST(req: Request) {
   } = await req.json();
 
   // Validate required fields
-  if (!title || !tone || !input || !Array.isArray(guests) || guests.length === 0 || !message) {
+  if (!title || !tone || !Array.isArray(guests) || guests.length === 0 || !message) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
@@ -44,7 +43,6 @@ export async function POST(req: Request) {
       end_time,
       tone,
       message,
-      input,
       location,
       location_lat,
       location_lng,

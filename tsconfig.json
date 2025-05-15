@@ -38,5 +38,5 @@
     "scripts/translateJson.ts",
     "./scripts/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "app/globals.css"]
 }

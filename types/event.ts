@@ -10,7 +10,6 @@ export interface Guest {
 
 export interface Event {
   id: string;
-  input: string;
   title: string;
   date: string;
   start_time: string;

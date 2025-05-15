@@ -30,7 +30,7 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
       : getDefaultNoon()
   );
   const [endDate, setEndDate] = useState<Date | null>(
-    initialEndDate !== null && initialEndDate !== undefined ? initialEndDate : getDefaultNoon()
+    initialEndDate !== null && initialEndDate !== undefined && initialHasEnd ? initialEndDate : null
   );
   const [hasEnd, setHasEnd] = useState(initialHasEnd);
   const [activeTab, setActiveTab] = useState<'start' | 'end'>(initialHasEnd ? 'end' : 'start');
@@ -185,12 +185,23 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
                 ref={startTimeScrollRef}
               >
                 {timeOptions.map((t, i) => {
-                  const isPast = startDate
-                    ? startDate.toDateString() === new Date().toDateString() &&
-                      (t.getHours() < new Date().getHours() ||
-                        (t.getHours() === new Date().getHours() &&
-                          t.getMinutes() <= new Date().getMinutes()))
-                    : false;
+                  const isPast = (() => {
+                    if (startDate) {
+                      // If the selected date is today, block times in the past
+                      if (startDate.toDateString() === new Date().toDateString()) {
+                        return (
+                          t.getHours() < new Date().getHours() ||
+                          (t.getHours() === new Date().getHours() &&
+                            t.getMinutes() <= new Date().getMinutes())
+                        );
+                      }
+                      // If the selected date is not today, block times before the selected start time
+                      if (endDate && endDate.toDateString() === startDate.toDateString()) {
+                        return t.getTime() <= startDate.getTime();
+                      }
+                    }
+                    return false;
+                  })();
                   return (
                     <div
                       key={i}
@@ -226,20 +237,27 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
                   ref={endTimeScrollRef}
                 >
                   {timeOptions.map((t, i) => {
-                    let isPast = false;
-                    if (endDate) {
-                      // If endDate is today, block times in the past
-                      if (endDate.toDateString() === new Date().toDateString()) {
-                        isPast =
-                          t.getHours() < new Date().getHours() ||
-                          (t.getHours() === new Date().getHours() &&
-                            t.getMinutes() <= new Date().getMinutes());
+                    const isPast = (() => {
+                      if (startDate) {
+                        // If the selected date is today, block times in the past
+                        if (startDate.toDateString() === new Date().toDateString()) {
+                          return (
+                            t.getHours() < new Date().getHours() ||
+                            (t.getHours() === new Date().getHours() &&
+                              t.getMinutes() <= new Date().getMinutes())
+                          );
+                        }
+                        // If the selected date is not today, block times before the selected start time
+                        if (endDate && endDate.toDateString() === startDate.toDateString()) {
+                          return t.getTime() <= startDate.getTime();
+                        }
                       }
-                      // If startDate is set and endDate is same day, block times before or equal to startDate
-                      if (startDate && endDate.toDateString() === startDate.toDateString()) {
-                        isPast = t.getTime() <= startDate.getTime();
+                      // If no endDate is set, block times before the startDate
+                      if (startDate) {
+                        return t.getTime() <= startDate.getTime();
                       }
-                    }
+                      return false;
+                    })();
                     return (
                       <div
                         key={i}
