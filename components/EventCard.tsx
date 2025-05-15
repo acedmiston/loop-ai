@@ -49,7 +49,7 @@ export default function EventCard({
       </div>
 
       <div className="space-y-1 text-sm text-gray-600">
-        <div className="flex gap-4">
+        <div className={`flex ${event.end_time ? 'justify-between' : 'gap-4'}`}>
           {event.date && (
             <p>
               <strong>Date:</strong>{' '}
@@ -62,12 +62,12 @@ export default function EventCard({
               {DateTime.fromFormat(event.start_time, 'HH:mm').toFormat('h:mm a')}
             </p>
           )}
-          {event.end_time && (
+          {event.end_time ? (
             <p>
               <strong>End:</strong>{' '}
               {DateTime.fromFormat(event.end_time, 'HH:mm').toFormat('h:mm a')}
             </p>
-          )}
+          ) : null}
         </div>
         {event.location && (
           <div className="flex items-start justify-between gap-4 mt-2">

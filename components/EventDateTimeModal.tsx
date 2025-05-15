@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -17,10 +17,40 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
   onClose,
   onSave,
 }) => {
-  const [startDate, setStartDate] = useState<Date | null>(initialStartDate);
-  const [endDate, setEndDate] = useState<Date | null>(initialEndDate);
+  // Helper to get today at 12:00pm
+  const getDefaultNoon = () => {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0);
+    return d;
+  };
+
+  const [startDate, setStartDate] = useState<Date | null>(
+    initialStartDate !== null && initialStartDate !== undefined
+      ? initialStartDate
+      : getDefaultNoon()
+  );
+  const [endDate, setEndDate] = useState<Date | null>(
+    initialEndDate !== null && initialEndDate !== undefined ? initialEndDate : getDefaultNoon()
+  );
   const [hasEnd, setHasEnd] = useState(initialHasEnd);
   const [activeTab, setActiveTab] = useState<'start' | 'end'>(initialHasEnd ? 'end' : 'start');
+
+  const startTimeScrollRef = useRef<HTMLDivElement>(null);
+  const endTimeScrollRef = useRef<HTMLDivElement>(null);
+
+  // Close modal when clicking outside
+  const modalRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
 
   // Helper to get a date with the same day as startDate but a new time
   const setTimeOnDate = (base: Date, time: Date) => {
@@ -44,9 +74,40 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
 
   const timeOptions = getTimeOptions();
 
+  // Scroll to the first available (not in the past) time for today, or to noon if not today
+  useEffect(() => {
+    // Find the index of the first available (not in the past) time for today, otherwise default to noon
+    let scrollIndex = timeOptions.findIndex(t => {
+      if (startDate && startDate.toDateString() === new Date().toDateString()) {
+        return (
+          t.getHours() > new Date().getHours() ||
+          (t.getHours() === new Date().getHours() && t.getMinutes() > new Date().getMinutes())
+        );
+      }
+      // If not today, scroll to noon
+      return t.getHours() === 12 && t.getMinutes() === 0;
+    });
+    if (scrollIndex === -1) {
+      scrollIndex = timeOptions.findIndex(t => t.getHours() === 12 && t.getMinutes() === 0);
+    }
+    // Scroll start time
+    if (startTimeScrollRef.current && scrollIndex !== -1) {
+      const itemHeight = startTimeScrollRef.current.scrollHeight / timeOptions.length;
+      startTimeScrollRef.current.scrollTop = itemHeight * scrollIndex;
+    }
+    // Scroll end time (if enabled)
+    if (hasEnd && endTimeScrollRef.current && scrollIndex !== -1) {
+      const itemHeight = endTimeScrollRef.current.scrollHeight / timeOptions.length;
+      endTimeScrollRef.current.scrollTop = itemHeight * scrollIndex;
+    }
+  }, [hasEnd, timeOptions.length, startDate]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="relative flex flex-col items-center w-full max-w-xl p-6 bg-white shadow-xl rounded-2xl">
+      <div
+        ref={modalRef}
+        className="relative flex flex-col items-center w-full max-w-xl p-6 bg-white shadow-xl rounded-2xl"
+      >
         {/* Header */}
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center">
@@ -94,7 +155,7 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
             )}
           </div>
           <button
-            className="text-2xl font-bold text-gray-400 hover:text-gray-700"
+            className="text-2xl font-bold text-gray-400 hover:text-gray-700 mt-[-25]"
             onClick={onClose}
             aria-label="Close"
             type="button"
@@ -108,6 +169,7 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
             <DatePicker
               selected={startDate}
               onChange={date => setStartDate(date as Date | null)}
+              minDate={new Date()}
               inline
               calendarClassName="!w-full !h-full !rounded-lg"
               wrapperClassName="!w-[400px] !h-[400px]"
@@ -118,51 +180,91 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
             {/* Start time scroll */}
             <div style={{ minWidth: 96 }}>
               <div className="mb-1 text-xs font-medium text-center text-gray-500">Start Time</div>
-              <div className="w-24 h-64 overflow-y-scroll bg-white border rounded-md">
-                {timeOptions.map((t, i) => (
-                  <div
-                    key={i}
-                    className={`px-2 py-1 text-center cursor-pointer ${
-                      startDate &&
-                      startDate.getHours() === t.getHours() &&
-                      startDate.getMinutes() === t.getMinutes()
-                        ? 'bg-blue-100 text-blue-700 font-semibold'
-                        : 'hover:bg-gray-100'
-                    }`}
-                    onClick={() => {
-                      if (startDate) setStartDate(setTimeOnDate(startDate, t));
-                      else setStartDate(t);
-                    }}
-                  >
-                    {t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                ))}
+              <div
+                className="w-24 h-64 overflow-y-scroll bg-white border rounded-md"
+                ref={startTimeScrollRef}
+              >
+                {timeOptions.map((t, i) => {
+                  const isPast = startDate
+                    ? startDate.toDateString() === new Date().toDateString() &&
+                      (t.getHours() < new Date().getHours() ||
+                        (t.getHours() === new Date().getHours() &&
+                          t.getMinutes() <= new Date().getMinutes()))
+                    : false;
+                  return (
+                    <div
+                      key={i}
+                      className={`px-2 py-1 text-center cursor-pointer ${
+                        isPast
+                          ? 'text-gray-300 cursor-not-allowed bg-gray-50'
+                          : startDate &&
+                              startDate.getHours() === t.getHours() &&
+                              startDate.getMinutes() === t.getMinutes()
+                            ? 'bg-blue-100 text-blue-700 font-semibold'
+                            : 'hover:bg-gray-100'
+                      }`}
+                      onClick={() => {
+                        if (!isPast) {
+                          if (startDate) setStartDate(setTimeOnDate(startDate, t));
+                          else setStartDate(t);
+                        }
+                      }}
+                      aria-disabled={isPast}
+                    >
+                      {t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  );
+                })}
               </div>
             </div>
             {/* End time scroll (if enabled) */}
             {hasEnd && (
               <div style={{ minWidth: 96 }}>
                 <div className="mb-1 text-xs font-medium text-center text-gray-500">End Time</div>
-                <div className="w-24 h-64 overflow-y-scroll bg-white border rounded-md">
-                  {timeOptions.map((t, i) => (
-                    <div
-                      key={i}
-                      className={`px-2 py-1 text-center cursor-pointer ${
-                        endDate &&
-                        endDate.getHours() === t.getHours() &&
-                        endDate.getMinutes() === t.getMinutes()
-                          ? 'bg-blue-100 text-blue-700 font-semibold'
-                          : 'hover:bg-gray-100'
-                      }`}
-                      onClick={() => {
-                        if (startDate && endDate) setEndDate(setTimeOnDate(endDate, t));
-                        else if (startDate) setEndDate(setTimeOnDate(startDate, t));
-                        else setEndDate(t);
-                      }}
-                    >
-                      {t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  ))}
+                <div
+                  className="w-24 h-64 overflow-y-scroll bg-white border rounded-md"
+                  ref={endTimeScrollRef}
+                >
+                  {timeOptions.map((t, i) => {
+                    let isPast = false;
+                    if (endDate) {
+                      // If endDate is today, block times in the past
+                      if (endDate.toDateString() === new Date().toDateString()) {
+                        isPast =
+                          t.getHours() < new Date().getHours() ||
+                          (t.getHours() === new Date().getHours() &&
+                            t.getMinutes() <= new Date().getMinutes());
+                      }
+                      // If startDate is set and endDate is same day, block times before or equal to startDate
+                      if (startDate && endDate.toDateString() === startDate.toDateString()) {
+                        isPast = t.getTime() <= startDate.getTime();
+                      }
+                    }
+                    return (
+                      <div
+                        key={i}
+                        className={`px-2 py-1 text-center cursor-pointer ${
+                          isPast
+                            ? 'text-gray-300 cursor-not-allowed bg-gray-50'
+                            : endDate &&
+                                endDate.getHours() === t.getHours() &&
+                                endDate.getMinutes() === t.getMinutes()
+                              ? 'bg-blue-100 text-blue-700 font-semibold'
+                              : 'hover:bg-gray-100'
+                        }`}
+                        onClick={() => {
+                          if (!isPast) {
+                            if (startDate && endDate) setEndDate(setTimeOnDate(endDate, t));
+                            else if (startDate) setEndDate(setTimeOnDate(startDate, t));
+                            else setEndDate(t);
+                          }
+                        }}
+                        aria-disabled={isPast}
+                      >
+                        {t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
