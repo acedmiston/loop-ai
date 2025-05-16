@@ -11,7 +11,6 @@ import SendTextModal from '@/components/SendTextModal';
 import { DateTime } from 'luxon';
 
 function isPastEvent(event: Event) {
-  // Use Luxon to parse event date as local date
   const eventDate = DateTime.fromISO(event.date, { zone: 'local' }).startOf('day');
   const today = DateTime.local().startOf('day');
   return eventDate < today;
@@ -52,6 +51,7 @@ export default function DashboardContent() {
               phone: g.phone,
               first_name: g.first_name,
               last_name: g.last_name,
+              id: g.id,
               email: g.email,
             })) as Guest[],
           })) as Event[]
@@ -66,7 +66,6 @@ export default function DashboardContent() {
   // Sort events by soonest date/time first
   const sortEvents = (arr: Event[]) =>
     arr.slice().sort((a, b) => {
-      // Use Luxon for robust comparison
       const aDate = DateTime.fromISO(a.date, { zone: 'local' }).startOf('day');
       const bDate = DateTime.fromISO(b.date, { zone: 'local' }).startOf('day');
       // If dates are equal, sort by time if available
@@ -191,6 +190,7 @@ export default function DashboardContent() {
             onClose={() => setSendModalEvent(null)}
             guests={sendModalEvent.guests}
             defaultMessage={sendModalEvent.message}
+            eventId={sendModalEvent.id}
           />
         )}
       </div>

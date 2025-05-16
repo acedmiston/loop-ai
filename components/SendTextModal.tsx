@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState } from 'react';
 import { Guest } from '@/types/event';
 import { Button } from './ui/button';
@@ -27,15 +28,13 @@ export default function SendTextModal({
   const { user } = useUser();
 
   const handleSend = async () => {
-    console.log('Send button clicked');
     setSending(true);
     setError(null);
     setSuccess(false);
     try {
-      for (const guest of guests.filter(
-        (g: Guest) =>
-          selectedPhones.includes(g.phone) && !g.opted_out && g.id && eventId && user?.id
-      )) {
+      for (const guest of guests.filter((g: Guest) => {
+        return selectedPhones.includes(g.phone) && !g.opted_out;
+      })) {
         // Prefer first_name, then name, then fallback
         const guestName = guest.first_name || guest.name || 'friend';
         const personalizedMessage = message.replace(/\[Name\]/g, guestName);
@@ -68,8 +67,6 @@ export default function SendTextModal({
           twilio_sid: sid,
           status: 'sent',
         };
-        // Debug log
-        console.log('Logging sent message:', logPayload);
         await fetch('/api/log-sent-message', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

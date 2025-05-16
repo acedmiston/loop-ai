@@ -24,6 +24,7 @@ export async function POST(req: Request) {
   ]);
 
   if (error) {
+    console.error('Database insertion error:', error);
     return NextResponse.json({ error: 'Failed to log sent message' }, { status: 500 });
   }
 

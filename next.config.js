@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['api.mapbox.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'api.mapbox.com',
+      },
+    ],
   },
   reactStrictMode: true,
 };

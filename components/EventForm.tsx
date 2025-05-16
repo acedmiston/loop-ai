@@ -148,7 +148,7 @@ export default function EventForm() {
   useEffect(() => {
     setValue('guests', selectedGuests);
     setHasEndTime(!!getValues('end_time'));
-  }, [selectedGuests, setValue]);
+  }, [selectedGuests, setValue, getValues]);
 
   useEffect(() => {
     if (personalize) {
@@ -177,7 +177,7 @@ export default function EventForm() {
     const e = getValues('end_time');
     if (s) setStartDate(new Date(`${getValues('date')}T${s}`));
     if (e) setEndDate(new Date(`${getValues('date')}T${e}`));
-  }, []);
+  }, [getValues]);
 
   const handleGenerateMessage = async () => {
     const values = getValues();
@@ -643,10 +643,12 @@ export default function EventForm() {
                 <Button
                   onClick={async () => {
                     for (const phone of selectedGuests) {
+                      const formattedPhone = phone.startsWith('+') ? phone : `+1${phone}`;
+                      const to = `whatsapp:${formattedPhone}`;
                       await fetch('/api/send-sms', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ to: phone, body: message }),
+                        body: JSON.stringify({ to, body: message, channel: 'whatsapp' }),
                       });
                     }
                     toast.success('Message sent!');

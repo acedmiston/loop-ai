@@ -1,3 +1,4 @@
+import React from 'react';
 import { useEffect, useState } from 'react';
 import { DateTime } from 'luxon';
 import { Event } from '@/types/event';
@@ -84,6 +85,20 @@ export default function EditEventModal({
     }
     // eslint-disable-next-line
   }, [personalize]);
+
+  useEffect(() => {
+    // Format selected guest phone numbers for WhatsApp
+    const formattedGuests = selectedGuests.map(phone => {
+      let formattedPhone = phone;
+      if (/^\d{10}$/.test(phone)) {
+        formattedPhone = `+1${phone}`;
+      } else if (!phone.startsWith('+')) {
+        formattedPhone = `+${phone}`;
+      }
+      return `whatsapp:${formattedPhone}`;
+    });
+    setSelectedGuests(formattedGuests);
+  }, [selectedGuests]);
 
   const handleSave = async () => {
     if (
@@ -440,7 +455,7 @@ export default function EditEventModal({
               id="edit-message"
               className="py-3 mt-1 text-lg"
               value={
-                personalize && message.includes('{{firstName}}') && selectedGuests.length > 0
+                personalize && message.includes('[Name') && selectedGuests.length > 0
                   ? (() => {
                       const firstGuest = allGuests.find(g => g.phone === selectedGuests[0]);
                       const previewName = firstGuest?.first_name || 'friend';
