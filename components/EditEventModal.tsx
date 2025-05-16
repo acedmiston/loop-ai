@@ -1,4 +1,3 @@
-import React from 'react';
 import { useEffect, useState } from 'react';
 import { DateTime } from 'luxon';
 import { Event } from '@/types/event';
@@ -85,20 +84,6 @@ export default function EditEventModal({
     }
     // eslint-disable-next-line
   }, [personalize]);
-
-  useEffect(() => {
-    // Format selected guest phone numbers for WhatsApp
-    const formattedGuests = selectedGuests.map(phone => {
-      let formattedPhone = phone;
-      if (/^\d{10}$/.test(phone)) {
-        formattedPhone = `+1${phone}`;
-      } else if (!phone.startsWith('+')) {
-        formattedPhone = `+${phone}`;
-      }
-      return `whatsapp:${formattedPhone}`;
-    });
-    setSelectedGuests(formattedGuests);
-  }, [selectedGuests]);
 
   const handleSave = async () => {
     if (

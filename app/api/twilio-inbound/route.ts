@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   // Twilio sends data as application/x-www-form-urlencoded
   const formData = await req.formData();
   const from = formData.get('From'); // The sender (guest)
-  const to = formData.get('To'); // Your Twilio number
+  const to = formData.get('To');
   const body = formData.get('Body');
 
   if (!from || !body) {
@@ -17,14 +17,12 @@ export async function POST(req: Request) {
   const fromPhone = from.toString().replace(/^whatsapp:/, '');
   const bodyText = body.toString().trim().toLowerCase();
 
-  // 1. Opt-out/Opt-in logic
+  // Opt-out/Opt-in logic
   if (bodyText === 'stop') {
     // Mark guest as opted out
     await supabase.from('guests').update({ opted_out: true }).eq('phone', fromPhone);
     // Log opt-out event
-    await supabase.from('guest_opt_events').insert([
-      { guest_id: null, event: 'opt_out' }, // guest_id can be filled if you want to look up the guest
-    ]);
+    await supabase.from('guest_opt_events').insert([{ guest_id: null, event: 'opt_out' }]);
     // Respond to Twilio (auto-reply)
     return new Response(
       '<Response><Message>You have been opted out and will not receive further messages.</Message></Response>',
@@ -44,7 +42,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // 2. Reply mapping: find the most recent sent message for this phone
+  // Reply mapping: find the most recent sent message for this phone
   const { data: sentMsg } = await supabase
     .from('sent_messages')
     .select('event_id, from_user_id')
@@ -60,15 +58,17 @@ export async function POST(req: Request) {
     );
   }
 
-  // 3. Forward the reply to the sender (event creator)
+  // Forward the reply to the sender (event creator)
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('first_name, last_name, phone')
     .eq('id', sentMsg.from_user_id)
     .single();
 
-  if (profileError || !profile || !profile.phone) {
-    return NextResponse.json({ error: 'Could not find sender phone' }, { status: 404 });
+  if (!sentMsg || profileError || !profile || !profile.phone) {
+    return new Response(`<Response><Message>You said: ${body}</Message></Response>`, {
+      headers: { 'Content-Type': 'text/xml' },
+    });
   }
 
   try {
@@ -85,6 +85,12 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ success: true });
   } catch (err) {
-    return NextResponse.json({ error: 'Failed to forward reply' }, { status: 500 });
+    // Log the error but do not return here to allow fallback to execute
+    console.error('Failed to forward reply:', err);
   }
+
+  // Fallback response for unhandled messages
+  return new Response(`<Response><Message>You said: ${body}</Message></Response>`, {
+    headers: { 'Content-Type': 'text/xml' },
+  });
 }

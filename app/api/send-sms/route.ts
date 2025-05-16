@@ -13,10 +13,10 @@ export async function POST(req: Request) {
     let statusCallback;
     if (channel === 'whatsapp' || (typeof to === 'string' && to.startsWith('whatsapp:'))) {
       from = 'whatsapp:+14155238886'; // Twilio WhatsApp sandbox number
-      statusCallback = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://yourdomain.com'}/api/twilio-status-callback`;
+      statusCallback = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://loop-ai-five.vercel.app'}/api/twilio-status-callback`;
     } else {
       from = process.env.TWILIO_PHONE_NUMBER!;
-      statusCallback = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://yourdomain.com'}/api/twilio-status-callback`;
+      statusCallback = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://loop-ai-five.vercel.app'}/api/twilio-status-callback`;
     }
     const message = await client.messages.create({
       to,

@@ -5,12 +5,12 @@ import { Guest } from '@/types/event';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import AddContactModal from '@/components/AddContactModal';
 
 export default function ContactsPage() {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [query, setQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [newGuest, setNewGuest] = useState({ firstName: '', lastName: '', phone: '' });
 
   // Watch this to make sure this works correctly.
   useEffect(() => {
@@ -34,13 +34,13 @@ export default function ContactsPage() {
 
   return (
     <div className="max-w-2xl p-6 mx-auto space-y-6 bg-white rounded-lg shadow">
-      <h1 className="mb-4 text-2xl font-bold">My Contacts</h1>
+      <h1 className="mb-4 text-2xl font-bold">My Friends</h1>
       <div className="mb-4">
         <Input
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="Search contacts..."
+          placeholder="Search friends..."
         />
       </div>
       <ul className="space-y-2">
@@ -49,75 +49,61 @@ export default function ContactsPage() {
             <span>
               {guest.first_name} {guest.last_name} — {guest.phone}
             </span>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const res = await fetch(`/api/guests?phone=${guest.phone}`, {
+                    method: 'DELETE',
+                  });
+                  const { success } = await res.json();
+                  if (success) {
+                    setGuests(prev => prev.filter(g => g.phone !== guest.phone));
+                    toast.success('Friend ghosted successfully');
+                  } else {
+                    toast.error('Failed to ghost friend.');
+                  }
+                } catch {
+                  toast.error('Something went wrong while ghosting this friend.');
+                }
+              }}
+            >
+              Delete
+            </Button>
           </li>
         ))}
-        {filtered.length === 0 && <li className="text-sm text-gray-500">No contacts found.</li>}
+        {filtered.length === 0 && <li className="text-sm text-gray-500">No friends found.</li>}
       </ul>
-      <Button onClick={() => setShowModal(true)}>Add Contact</Button>
+      <Button onClick={() => setShowModal(true)}>Add a Friend</Button>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white p-6 rounded-md w-[300px] space-y-4">
-            <h3 className="text-lg font-semibold">Add New Contact</h3>
-            <Input
-              placeholder="First Name"
-              value={newGuest.firstName}
-              onChange={e => setNewGuest({ ...newGuest, firstName: e.target.value })}
-            />
-            <Input
-              placeholder="Last Name"
-              value={newGuest.lastName}
-              onChange={e => setNewGuest({ ...newGuest, lastName: e.target.value })}
-            />
-            <Input
-              placeholder="Phone Number"
-              value={newGuest.phone}
-              onChange={e => setNewGuest({ ...newGuest, phone: e.target.value })}
-            />
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowModal(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={async () => {
-                  if (!newGuest.firstName || !newGuest.phone) {
-                    toast.error('First name and phone number are required');
-                    return;
-                  }
-                  try {
-                    const res = await fetch('/api/guests', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        first_name: newGuest.firstName,
-                        last_name: newGuest.lastName,
-                        phone: newGuest.phone,
-                      }),
-                    });
-                    const { success, guest } = await res.json();
-                    if (success) {
-                      setGuests(prev => [
-                        ...prev,
-                        { ...guest, firstName: guest.first_name, lastName: guest.last_name },
-                      ]);
-                      setShowModal(false);
-                      setNewGuest({ firstName: '', lastName: '', phone: '' });
-                    } else {
-                      toast.error(
-                        'Failed to save contact. This phone number may already be in use.'
-                      );
-                    }
-                  } catch {
-                    toast.error('Something went wrong while saving this contact.');
-                  }
-                }}
-              >
-                Add Contact
-              </Button>
-            </div>
-          </div>
-        </div>
+        <AddContactModal
+          onAddContact={async contact => {
+            try {
+              const res = await fetch('/api/guests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  first_name: contact.firstName,
+                  last_name: contact.lastName,
+                  phone: contact.phone,
+                }),
+              });
+              const { success, guest } = await res.json();
+              if (success) {
+                setGuests(prev => [
+                  ...prev,
+                  { ...guest, firstName: guest.first_name, lastName: guest.last_name },
+                ]);
+              } else {
+                toast.error('Failed to save this friendship. This phone number may already be in use.');
+              }
+            } catch {
+              toast.error('Something went wrong while saving this friendship.');
+            }
+          }}
+          onClose={() => setShowModal(false)}
+        />
       )}
     </div>
   );

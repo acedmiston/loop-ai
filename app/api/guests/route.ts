@@ -81,3 +81,29 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ success: true, guest: data });
 }
+
+// DELETE: Remove a contact by phone number
+export async function DELETE(req: Request) {
+  const url = new URL(req.url);
+  const phone = url.searchParams.get('phone');
+
+  if (!phone) {
+    return NextResponse.json(
+      { success: false, error: 'Phone number is required' },
+      { status: 400 }
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.from('guests').delete().eq('phone', phone);
+
+  if (error) {
+    console.error('Error deleting contact:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete contact' },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ success: true });
+}

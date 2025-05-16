@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { useClickOutside } from '@/lib/useClickOutside';
 
 interface EventDateTimeModalProps {
   initialStartDate?: Date | null;
@@ -40,17 +41,7 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
 
   // Close modal when clicking outside
   const modalRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [onClose]);
+  useClickOutside(modalRef, onClose);
 
   // Helper to get a date with the same day as startDate but a new time
   const setTimeOnDate = (base: Date, time: Date) => {
@@ -172,7 +163,7 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
               minDate={new Date()}
               inline
               calendarClassName="!w-full !h-full !rounded-lg"
-              wrapperClassName="!w-[400px] !h-[400px]"
+              wrapperClassName="!w-[400px] !h-[400px] focus:ring-0 focus:outline-none focus:border-blue-500"
             />
           </div>
           {/* Time scrolls */}

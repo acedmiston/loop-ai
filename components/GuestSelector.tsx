@@ -3,9 +3,10 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Guest } from '@/types/event';
+import AddContactModal from '@/components/AddContactModal';
+import 'react-phone-input-2/lib/style.css';
 
 type GuestSelectorProps = {
   guests: Guest[];
@@ -23,7 +24,6 @@ export default function GuestSelector({
   const [query, setQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [showModal, setShowModal] = useState(false);
-  const [newGuest, setNewGuest] = useState({ firstName: '', lastName: '', phone: '' });
 
   const filtered = guests.filter(guest => {
     const fullName = `${guest.first_name || ''} ${guest.last_name || ''}`.toLowerCase();
@@ -124,73 +124,31 @@ export default function GuestSelector({
       )}
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white p-6 rounded-md w-[300px] space-y-4">
-            <h3 className="text-lg font-semibold">Add New Friend</h3>
-            <Input
-              placeholder="First Name"
-              value={newGuest.firstName}
-              onChange={e => setNewGuest({ ...newGuest, firstName: e.target.value })}
-            />
-            <Input
-              placeholder="Last Name"
-              value={newGuest.lastName}
-              onChange={e => setNewGuest({ ...newGuest, lastName: e.target.value })}
-            />
-            <Input
-              placeholder="Phone Number"
-              value={newGuest.phone}
-              onChange={e => setNewGuest({ ...newGuest, phone: e.target.value })}
-            />
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowModal(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                formNoValidate
-                onClick={async () => {
-                  if (!newGuest.firstName || !newGuest.phone) {
-                    toast.error('First name and phone number are required');
-                    return;
-                  }
-
-                  try {
-                    const res = await fetch('/api/guests', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        first_name: newGuest.firstName,
-                        last_name: newGuest.lastName,
-                        phone: newGuest.phone,
-                      }),
-                    });
-
-                    const { success } = await res.json();
-
-                    if (success) {
-                      await fetchGuests(); // Re-fetch the full guest list after adding
-                      setShowModal(false);
-                      setQuery('');
-                      setNewGuest({ firstName: '', lastName: '', phone: '' });
-                      // Automatically select the new guest
-                      setSelected(Array.from(new Set([...selected, newGuest.phone])));
-                    } else {
-                      toast.error('Failed to save guest. This phone number may already be in use.');
-                    }
-                  } catch (err) {
-                    console.error('API Error:', err);
-                    toast.error('Something went wrong while saving this guest.');
-                  }
-                }}
-              >
-                Add Friend
-              </Button>
-            </div>
-          </div>
-        </div>
+        <AddContactModal
+          onAddContact={async contact => {
+            try {
+              const res = await fetch('/api/guests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  first_name: contact.firstName,
+                  last_name: contact.lastName,
+                  phone: contact.phone,
+                }),
+              });
+              const { success } = await res.json();
+              if (success) {
+                await fetchGuests();
+                setSelected([...selected, contact.phone]);
+              } else {
+                toast.error('Failed to save guest. This phone number may already be in use.');
+              }
+            } catch {
+              toast.error('Something went wrong while saving this guest.');
+            }
+          }}
+          onClose={() => setShowModal(false)}
+        />
       )}
     </div>
   );

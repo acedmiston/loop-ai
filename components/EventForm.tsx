@@ -231,7 +231,7 @@ export default function EventForm() {
           location,
           displayTime,
           displayDate,
-          message: msg, // Ensure message is included in the request body
+          message: msg,
         }),
       });
 
