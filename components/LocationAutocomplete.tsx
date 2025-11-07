@@ -27,16 +27,28 @@ export default function LocationAutocomplete({
       setSuggestions([]);
       return;
     }
+    if (!MAPBOX_TOKEN) {
+      console.error('Mapbox token not configured');
+      setSuggestions([]);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&autocomplete=true&limit=5`
       );
+      if (!res.ok) {
+        console.error('Mapbox API error:', res.status);
+        setSuggestions([]);
+        setLoading(false);
+        return;
+      }
       const data = await res.json();
       setSuggestions(
         (data.features || []) as Array<{ place_name: string; center: [number, number]; id: string }>
       );
-    } catch {
+    } catch (error) {
+      console.error('Error fetching location suggestions:', error);
       setSuggestions([]);
     }
     setLoading(false);

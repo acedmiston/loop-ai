@@ -136,6 +136,10 @@ export default function GuestSelector({
                   phone: contact.phone,
                 }),
               });
+              if (!res.ok) {
+                toast.error('Failed to save guest. This phone number may already be in use.');
+                return;
+              }
               const { success } = await res.json();
               if (success) {
                 await fetchGuests();
@@ -143,7 +147,8 @@ export default function GuestSelector({
               } else {
                 toast.error('Failed to save guest. This phone number may already be in use.');
               }
-            } catch {
+            } catch (error) {
+              console.error('Error saving guest:', error);
               toast.error('Something went wrong while saving this guest.');
             }
           }}

@@ -128,15 +128,23 @@ export default function EventForm() {
 
   // Fetch guests on mount
   const fetchGuests = async () => {
-    const res = await fetch('/api/guests');
-    const data = await res.json();
-    setGuests(
-      (data.guests || []).map((g: Guest) => ({
-        ...g,
-        firstName: g.first_name,
-        lastName: g.last_name,
-      }))
-    );
+    try {
+      const res = await fetch('/api/guests');
+      if (!res.ok) {
+        console.error('Failed to fetch guests:', res.status);
+        return;
+      }
+      const data = await res.json();
+      setGuests(
+        (data.guests || []).map((g: Guest) => ({
+          ...g,
+          firstName: g.first_name,
+          lastName: g.last_name,
+        }))
+      );
+    } catch (error) {
+      console.error('Error fetching guests:', error);
+    }
   };
 
   // Fetch guests on mount

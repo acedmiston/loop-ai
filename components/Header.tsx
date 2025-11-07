@@ -19,13 +19,18 @@ export default function Header() {
   useEffect(() => {
     const getProfile = async () => {
       if (user) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        if (!error && data) setUserProfile(data);
-        else toast.error('Error fetching profile');
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          if (!error && data) {
+            setUserProfile(data);
+          }
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+        }
       }
     };
     if (user) getProfile();
