@@ -10,13 +10,9 @@ const nextConfig = {
   },
   reactStrictMode: true,
   // Optimize build performance
+  // Preserve console.error and console.warn for debugging in production
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
-  },
-  // Type checking configuration - temporarily skip during build for speed
-  // Run type checking separately with: npx tsc --noEmit
-  typescript: {
-    ignoreBuildErrors: true,
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
 };
 
