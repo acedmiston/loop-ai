@@ -1,6 +1,4 @@
 'use client';
-
-import React from 'react';
 import { Event } from '@/types/event';
 import { DateTime } from 'luxon';
 import Image from 'next/image';
