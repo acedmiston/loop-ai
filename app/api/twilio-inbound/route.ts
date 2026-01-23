@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import client from '@/lib/twilio';
+import client, { getWhatsAppFromNumber } from '@/lib/twilio';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 
 export async function POST(req: Request) {
@@ -65,19 +65,20 @@ export async function POST(req: Request) {
     .eq('id', sentMsg.from_user_id)
     .single();
 
-  if (!sentMsg || profileError || !profile || !profile.phone) {
+  if (profileError || !profile || !profile.phone) {
     return new Response(`<Response><Message>You said: ${body}</Message></Response>`, {
       headers: { 'Content-Type': 'text/xml' },
     });
   }
 
   try {
-    let forwardTo = profile.phone;
-    let forwardFrom = to?.toString() || process.env.TWILIO_PHONE_NUMBER!;
-    if (from.toString().startsWith('whatsapp:')) {
-      forwardTo = `whatsapp:${profile.phone.replace(/[^\d+]/g, '')}`;
-      forwardFrom = 'whatsapp:+14155238886';
-    }
+    const isWhatsApp = from.toString().startsWith('whatsapp:');
+    const forwardTo = isWhatsApp
+      ? `whatsapp:${profile.phone.replace(/[^\d+]/g, '')}`
+      : profile.phone;
+    const forwardFrom = isWhatsApp
+      ? getWhatsAppFromNumber()
+      : to?.toString() || process.env.TWILIO_PHONE_NUMBER!;
     await client.messages.create({
       to: forwardTo,
       from: forwardFrom,

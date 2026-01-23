@@ -47,3 +47,7 @@ next-env.d.ts
 
 # Yarn Integrity file
 .yarn-integrity
+
+# Personal production review files (local reference only)
+PRODUCTION_CHECKLIST.md
+PRODUCTION_READINESS_REVIEW.md
