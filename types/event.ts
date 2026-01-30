@@ -14,6 +14,7 @@ export interface Event {
   date: string;
   start_time: string;
   end_time?: string;
+  end_date?: string;
   tone: string;
   message: string;
   createdAt: string;

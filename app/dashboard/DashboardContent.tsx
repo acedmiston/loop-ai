@@ -29,7 +29,7 @@ export default function DashboardContent() {
       const { data, error } = await supabase
         .from('events')
         .select(
-          'id, tone, message, created_at, title, date, start_time, end_time, location, location_lat, location_lng, guests(*)'
+          'id, tone, message, created_at, title, date, start_time, end_time, end_date, location, location_lat, location_lng, guests(*)'
         )
         .order('created_at', { ascending: false });
 
@@ -44,6 +44,7 @@ export default function DashboardContent() {
             date: e.date || new Date().toISOString(),
             start_time: e.start_time,
             end_time: e.end_time,
+            end_date: e.end_date,
             location: e.location,
             location_lat: e.location_lat,
             location_lng: e.location_lng,

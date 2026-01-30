@@ -45,6 +45,7 @@ export type EventFormData = {
   tone: string;
   location?: string;
   end_time?: string;
+  end_date?: string;
 };
 
 // Helper to personalize message preview (reused from SendTextModal)
@@ -205,8 +206,10 @@ export default function EventForm() {
       }
 
       const startDateTime = DateTime.fromISO(`${values.date}T${values.start_time}`);
+      // Use end_date if provided, otherwise use start date
+      const endDateStr = values.end_date || values.date;
       const endDateTime = values.end_time
-        ? DateTime.fromISO(`${values.date}T${values.end_time}`)
+        ? DateTime.fromISO(`${endDateStr}T${values.end_time}`)
         : null;
 
       const formattedStartTime = startDateTime.toFormat('h:mm a');
@@ -274,6 +277,7 @@ export default function EventForm() {
         location_lat: locationLat,
         location_lng: locationLng,
         personalize,
+        end_date: getValues('end_date') || undefined,
       };
 
       const res = await fetch('/api/create-event', {
@@ -365,21 +369,26 @@ export default function EventForm() {
                 onClick={() => setShowDateModal(true)}
               >
                 {startDate ? (
-                  <div className="flex items-center gap-3">
-                    <span>{formatDateWithOrdinal(startDate)}</span>
-                    <span>
-                      {startDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                      {hasEndTime && endDate ? (
-                        <>
-                          {' '}
-                          <span className="mx-1">-</span>{' '}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-3">
+                      <span>{formatDateWithOrdinal(startDate)}</span>
+                      <span>{startDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+                    </div>
+                    {hasEndTime && endDate && (
+                      <div className="flex items-center gap-3 text-gray-600">
+                        <span className="text-sm">
+                          {endDate.toDateString() !== startDate.toDateString()
+                            ? formatDateWithOrdinal(endDate)
+                            : 'End:'}
+                        </span>
+                        <span className="text-sm">
                           {endDate.toLocaleTimeString([], {
                             hour: 'numeric',
                             minute: '2-digit',
                           })}
-                        </>
-                      ) : null}
-                    </span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   'Select Date & Time'
@@ -407,8 +416,17 @@ export default function EventForm() {
                     if (hasEnd && end) {
                       const endDateTime = DateTime.fromJSDate(end);
                       setValue('end_time', endDateTime.toFormat('HH:mm'));
+                      // Store end_date separately if different from start date
+                      const endIsoDate = endDateTime.toISODate();
+                      const startIsoDate = start ? DateTime.fromJSDate(start).toISODate() : null;
+                      if (endIsoDate && endIsoDate !== startIsoDate) {
+                        setValue('end_date', endIsoDate);
+                      } else {
+                        setValue('end_date', '');
+                      }
                     } else {
                       setValue('end_time', '');
+                      setValue('end_date', '');
                     }
                   }}
                 />

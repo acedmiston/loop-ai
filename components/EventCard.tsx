@@ -52,6 +52,13 @@ export default function EventCard({
             <p>
               <strong>Date:</strong>{' '}
               {DateTime.fromISO(event.date).toLocaleString(DateTime.DATE_MED)}
+              {event.end_date && event.end_date !== event.date && (
+                <>
+                  {' '}
+                  <span className="text-gray-500">-</span>{' '}
+                  {DateTime.fromISO(event.end_date).toLocaleString(DateTime.DATE_MED)}
+                </>
+              )}
             </p>
           )}
           {event.start_time && (
@@ -64,6 +71,14 @@ export default function EventCard({
             <p>
               <strong>End:</strong>{' '}
               {DateTime.fromFormat(event.end_time, 'HH:mm').toFormat('h:mm a')}
+              {event.end_date && event.end_date !== event.date && (
+                <>
+                  {' '}
+                  <span className="text-gray-500">
+                    ({DateTime.fromISO(event.end_date).toLocaleString(DateTime.DATE_MED)})
+                  </span>
+                </>
+              )}
             </p>
           ) : null}
         </div>

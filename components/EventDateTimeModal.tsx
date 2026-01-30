@@ -36,6 +36,16 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
   const [hasEnd, setHasEnd] = useState(initialHasEnd);
   const [activeTab, setActiveTab] = useState<'start' | 'end'>(initialHasEnd ? 'end' : 'start');
 
+  // Initialize endDate from startDate when end tab is activated
+  useEffect(() => {
+    if (hasEnd && !endDate && startDate) {
+      const newEndDate = new Date(startDate);
+      // Set end time to 1 hour after start time, or keep same time if start is later in day
+      newEndDate.setHours(startDate.getHours() + 1, startDate.getMinutes(), 0, 0);
+      setEndDate(newEndDate);
+    }
+  }, [hasEnd, endDate, startDate]);
+
   const startTimeScrollRef = useRef<HTMLDivElement>(null);
   const endTimeScrollRef = useRef<HTMLDivElement>(null);
 
@@ -51,9 +61,10 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
   };
 
   // All times for the scroll (every 15 min)
-  const getTimeOptions = () => {
+  const getTimeOptions = (forEnd: boolean = false) => {
     const times: Date[] = [];
-    const base = startDate || new Date();
+    // For end time, use endDate if available, otherwise startDate
+    const base = forEnd ? (endDate || startDate || new Date()) : (startDate || new Date());
     const d = new Date(base);
     d.setHours(0, 0, 0, 0);
     for (let i = 0; i < 24 * 4; i++) {
@@ -63,12 +74,50 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
     return times;
   };
 
-  const timeOptions = getTimeOptions();
+  const startTimeOptions = getTimeOptions(false);
+  const endTimeOptions = getTimeOptions(true);
+
+  // Helper to format date in Partiful style: "Sat, Jan 24th"
+  const formatDateCompact = (date: Date) => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const day = date.getDate();
+    const ordinal = (n: number) => {
+      if (n > 3 && n < 21) return 'th';
+      switch (n % 10) {
+        case 1:
+          return 'st';
+        case 2:
+          return 'nd';
+        case 3:
+          return 'rd';
+        default:
+          return 'th';
+      }
+    };
+    return `${days[date.getDay()]}, ${months[date.getMonth()]} ${day}${ordinal(day)}`;
+  };
+
+  // Helper to format time: "6:00pm"
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+  };
+
+  // Helper to format full summary: "Sat, Jan 24 · 6:00pm — Thu, Feb 12 · 9:00pm"
+  const formatSummary = () => {
+    if (!startDate) return '';
+    const startStr = `${formatDateCompact(startDate)} · ${formatTime(startDate)}`;
+    if (hasEnd && endDate) {
+      const endStr = `${formatDateCompact(endDate)} · ${formatTime(endDate)}`;
+      return `${startStr} — ${endStr}`;
+    }
+    return startStr;
+  };
 
   // Scroll to the first available (not in the past) time for today, or to noon if not today
   useEffect(() => {
     // Find the index of the first available (not in the past) time for today, otherwise default to noon
-    let scrollIndex = timeOptions.findIndex(t => {
+    let startScrollIndex = startTimeOptions.findIndex(t => {
       if (startDate && startDate.toDateString() === new Date().toDateString()) {
         return (
           t.getHours() > new Date().getHours() ||
@@ -78,104 +127,192 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
       // If not today, scroll to noon
       return t.getHours() === 12 && t.getMinutes() === 0;
     });
-    if (scrollIndex === -1) {
-      scrollIndex = timeOptions.findIndex(t => t.getHours() === 12 && t.getMinutes() === 0);
+    if (startScrollIndex === -1) {
+      startScrollIndex = startTimeOptions.findIndex(t => t.getHours() === 12 && t.getMinutes() === 0);
     }
     // Scroll start time
-    if (startTimeScrollRef.current && scrollIndex !== -1) {
-      const itemHeight = startTimeScrollRef.current.scrollHeight / timeOptions.length;
-      startTimeScrollRef.current.scrollTop = itemHeight * scrollIndex;
+    if (startTimeScrollRef.current && startScrollIndex !== -1) {
+      const itemHeight = startTimeScrollRef.current.scrollHeight / startTimeOptions.length;
+      startTimeScrollRef.current.scrollTop = itemHeight * startScrollIndex;
     }
+    
     // Scroll end time (if enabled)
-    if (hasEnd && endTimeScrollRef.current && scrollIndex !== -1) {
-      const itemHeight = endTimeScrollRef.current.scrollHeight / timeOptions.length;
-      endTimeScrollRef.current.scrollTop = itemHeight * scrollIndex;
+    if (hasEnd && endTimeScrollRef.current) {
+      const endTimeDate = endDate || startDate;
+      let endScrollIndex = endTimeOptions.findIndex(t => {
+        if (endTimeDate && endTimeDate.toDateString() === new Date().toDateString()) {
+          return (
+            t.getHours() > new Date().getHours() ||
+            (t.getHours() === new Date().getHours() && t.getMinutes() > new Date().getMinutes())
+          );
+        }
+        // If not today, scroll to noon or to start time if same day
+        if (endTimeDate && endTimeDate.toDateString() === startDate?.toDateString() && startDate) {
+          return (
+            t.getHours() > startDate.getHours() ||
+            (t.getHours() === startDate.getHours() && t.getMinutes() > startDate.getMinutes())
+          );
+        }
+        return t.getHours() === 12 && t.getMinutes() === 0;
+      });
+      if (endScrollIndex === -1) {
+        endScrollIndex = endTimeOptions.findIndex(t => t.getHours() === 12 && t.getMinutes() === 0);
+      }
+      if (endScrollIndex !== -1) {
+        const itemHeight = endTimeScrollRef.current.scrollHeight / endTimeOptions.length;
+        endTimeScrollRef.current.scrollTop = itemHeight * endScrollIndex;
+      }
     }
-  }, [hasEnd, timeOptions.length, startDate]);
+  }, [hasEnd, startTimeOptions.length, endTimeOptions.length, startDate, endDate]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div
         ref={modalRef}
-        className="relative flex flex-col items-center w-full max-w-xl p-6 bg-white shadow-xl rounded-2xl"
+        className="relative flex flex-col w-full max-w-4xl p-6 bg-white shadow-xl rounded-2xl"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center">
+        {/* Summary Display */}
+        {startDate && (
+          <div className="mb-4 px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg">
+            {formatSummary()}
+          </div>
+        )}
+
+        {/* Start/End Date/Time Inputs */}
+        <div className="flex items-center gap-3 mb-4">
+          {/* Start Date/Time Input */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('start')}
+            className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+              activeTab === 'start'
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-200 bg-white hover:border-gray-300'
+            }`}
+          >
+            <div className="text-xs text-gray-500 mb-1">Start</div>
+            {startDate ? (
+              <div className="text-sm font-medium text-gray-900">
+                {formatDateCompact(startDate)} {formatTime(startDate)}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-400">Select start date</div>
+            )}
+          </button>
+
+          {/* Arrow Separator */}
+          <div className="text-gray-400">→</div>
+
+          {/* End Date/Time Input */}
+          {hasEnd ? (
             <button
-              className={`px-3 py-1 rounded-t-md font-medium ${activeTab === 'start' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}
-              onClick={() => setActiveTab('start')}
               type="button"
+              onClick={() => setActiveTab('end')}
+              className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all relative ${
+                activeTab === 'end'
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
             >
-              Start
-            </button>
-            {hasEnd ? (
-              <button
-                className={`ml-2 px-3 py-1 rounded-t-md font-medium ${activeTab === 'end' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}
+              <div
                 onClick={e => {
-                  if (activeTab === 'end') {
+                  e.stopPropagation();
+                  setHasEnd(false);
+                  setEndDate(null);
+                  setActiveTab('start');
+                }}
+                className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 text-gray-600 text-xs cursor-pointer"
+                title="Remove end date"
+                role="button"
+                tabIndex={0}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
                     e.stopPropagation();
                     setHasEnd(false);
                     setEndDate(null);
                     setActiveTab('start');
-                  } else {
-                    setActiveTab('end');
                   }
                 }}
-                type="button"
               >
-                {activeTab === 'end' ? (
-                  <span className="text-md" title="Remove end time">
-                    × End
-                  </span>
-                ) : (
-                  '+ End'
-                )}
-              </button>
-            ) : (
-              <button
-                className="px-3 py-1 ml-2 font-medium text-blue-500 bg-gray-100 rounded-t-md hover:bg-blue-50"
-                onClick={() => {
-                  setHasEnd(true);
-                  setActiveTab('end');
-                }}
-                type="button"
-              >
-                + End
-              </button>
-            )}
-          </div>
-          <button
-            className="text-2xl font-bold text-gray-400 hover:text-gray-700 mt-[-25]"
-            onClick={onClose}
-            aria-label="Close"
-            type="button"
-          >
-            ×
-          </button>
+                ×
+              </div>
+              <div className="text-xs text-gray-500 mb-1">End</div>
+              {endDate ? (
+                <div className="text-sm font-medium text-gray-900">
+                  {formatDateCompact(endDate)} {formatTime(endDate)}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-400">Select end date</div>
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setHasEnd(true);
+                if (!endDate && startDate) {
+                  const newEndDate = new Date(startDate);
+                  newEndDate.setHours(startDate.getHours() + 1, startDate.getMinutes(), 0, 0);
+                  setEndDate(newEndDate);
+                }
+                setActiveTab('end');
+              }}
+              className="flex-1 px-4 py-3 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100 transition-all"
+            >
+              <div className="text-xs text-gray-500 mb-1">End</div>
+              <div className="text-sm text-gray-400">Optional</div>
+            </button>
+          )}
         </div>
-        <div className="flex w-full max-w-full gap-4">
+
+        {/* Close Button */}
+        <button
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+          onClick={onClose}
+          aria-label="Close"
+          type="button"
+        >
+          ×
+        </button>
+        <div className="flex w-full gap-6">
           {/* Calendar */}
-          <div className="flex-shrink-0 h-64" style={{ minWidth: 288 }}>
+          <div className="flex-shrink-0" style={{ minWidth: 320 }}>
             <DatePicker
-              selected={startDate}
-              onChange={date => setStartDate(date as Date | null)}
-              minDate={new Date()}
+              selected={activeTab === 'end' ? endDate : startDate}
+              onChange={date => {
+                if (activeTab === 'end') {
+                  if (date && startDate && date < startDate) {
+                    // Don't allow end date before start date
+                    return;
+                  }
+                  setEndDate(date as Date | null);
+                } else {
+                  setStartDate(date as Date | null);
+                  // If end date exists and new start date is after end date, update end date
+                  if (date && endDate && date > endDate) {
+                    const newEndDate = new Date(date);
+                    newEndDate.setHours(endDate.getHours(), endDate.getMinutes(), 0, 0);
+                    setEndDate(newEndDate);
+                  }
+                }
+              }}
+              minDate={activeTab === 'end' && startDate ? startDate : new Date()}
               inline
               calendarClassName="!w-full !h-full !rounded-lg"
-              wrapperClassName="!w-[400px] !h-[400px] focus:ring-0 focus:outline-none focus:border-blue-500"
+              wrapperClassName="!w-full focus:ring-0 focus:outline-none"
             />
           </div>
           {/* Time scrolls */}
-          <div className="flex max-w-full gap-3 -mt-5 overflow-x-auto">
+          <div className="flex gap-4 flex-1">
             {/* Start time scroll */}
-            <div style={{ minWidth: 96 }}>
-              <div className="mb-1 text-xs font-medium text-center text-gray-500">Start Time</div>
+            <div className="flex-1 min-w-[120px]">
+              <div className="mb-2 text-xs font-medium text-gray-700">Start Time</div>
               <div
-                className="w-24 h-64 overflow-y-scroll bg-white border rounded-md"
+                className="w-full h-64 overflow-y-scroll bg-white border rounded-lg"
                 ref={startTimeScrollRef}
               >
-                {timeOptions.map((t, i) => {
+                {startTimeOptions.map((t, i) => {
                   const isPast = (() => {
                     if (startDate) {
                       // If the selected date is today, block times in the past
@@ -196,14 +333,14 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
                   return (
                     <div
                       key={i}
-                      className={`px-2 py-1 text-center cursor-pointer ${
+                      className={`px-3 py-2 text-center cursor-pointer transition-colors ${
                         isPast
                           ? 'text-gray-300 cursor-not-allowed bg-gray-50'
                           : startDate &&
                               startDate.getHours() === t.getHours() &&
                               startDate.getMinutes() === t.getMinutes()
-                            ? 'bg-blue-100 text-blue-700 font-semibold'
-                            : 'hover:bg-gray-100'
+                            ? 'bg-blue-600 text-white font-semibold'
+                            : 'hover:bg-gray-100 text-gray-700'
                       }`}
                       onClick={() => {
                         if (!isPast) {
@@ -213,64 +350,76 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
                       }}
                       aria-disabled={isPast}
                     >
-                      {t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {formatTime(t)}
                     </div>
                   );
                 })}
               </div>
             </div>
-            {/* End time scroll (if enabled) */}
+            {/* End time scroll - always show when hasEnd is true */}
             {hasEnd && (
-              <div style={{ minWidth: 96 }}>
-                <div className="mb-1 text-xs font-medium text-center text-gray-500">End Time</div>
+              <div className="flex-1 min-w-[120px]">
+                <div className="mb-2 text-xs font-medium text-gray-700">End Time</div>
                 <div
-                  className="w-24 h-64 overflow-y-scroll bg-white border rounded-md"
+                  className="w-full h-64 overflow-y-scroll bg-white border rounded-lg"
                   ref={endTimeScrollRef}
                 >
-                  {timeOptions.map((t, i) => {
+                  {endTimeOptions.map((t, i) => {
                     const isPast = (() => {
-                      if (startDate) {
-                        // If the selected date is today, block times in the past
-                        if (startDate.toDateString() === new Date().toDateString()) {
-                          return (
-                            t.getHours() < new Date().getHours() ||
-                            (t.getHours() === new Date().getHours() &&
-                              t.getMinutes() <= new Date().getMinutes())
-                          );
-                        }
-                        // If the selected date is not today, block times before the selected start time
-                        if (endDate && endDate.toDateString() === startDate.toDateString()) {
-                          return t.getTime() <= startDate.getTime();
-                        }
+                      if (!startDate) return false;
+                      
+                      // Get the date for the end time (could be different day)
+                      const endTimeDate = endDate || startDate;
+                      
+                      // If end date is today, block times in the past
+                      if (endTimeDate.toDateString() === new Date().toDateString()) {
+                        const now = new Date();
+                        const timeToCheck = new Date(endTimeDate);
+                        timeToCheck.setHours(t.getHours(), t.getMinutes(), 0, 0);
+                        return timeToCheck <= now;
                       }
-                      // If no endDate is set, block times before the startDate
-                      if (startDate) {
-                        return t.getTime() <= startDate.getTime();
+                      
+                      // If end date is same as start date, block times before start time
+                      if (endTimeDate.toDateString() === startDate.toDateString()) {
+                        const timeToCheck = new Date(endTimeDate);
+                        timeToCheck.setHours(t.getHours(), t.getMinutes(), 0, 0);
+                        return timeToCheck <= startDate;
                       }
+                      
+                      // If end date is different from start date, allow any time on that day
+                      // (validation already handled by minDate on calendar)
                       return false;
                     })();
                     return (
                       <div
                         key={i}
-                        className={`px-2 py-1 text-center cursor-pointer ${
+                        className={`px-3 py-2 text-center cursor-pointer transition-colors ${
                           isPast
                             ? 'text-gray-300 cursor-not-allowed bg-gray-50'
                             : endDate &&
                                 endDate.getHours() === t.getHours() &&
                                 endDate.getMinutes() === t.getMinutes()
-                              ? 'bg-blue-100 text-blue-700 font-semibold'
-                              : 'hover:bg-gray-100'
+                              ? 'bg-blue-600 text-white font-semibold'
+                              : 'hover:bg-gray-100 text-gray-700'
                         }`}
                         onClick={() => {
                           if (!isPast) {
-                            if (startDate && endDate) setEndDate(setTimeOnDate(endDate, t));
-                            else if (startDate) setEndDate(setTimeOnDate(startDate, t));
-                            else setEndDate(t);
+                            // Preserve the end date's day, just update the time
+                            if (endDate) {
+                              setEndDate(setTimeOnDate(endDate, t));
+                            } else if (startDate) {
+                              // If no end date, create one from start date
+                              const newEndDate = new Date(startDate);
+                              newEndDate.setHours(t.getHours(), t.getMinutes(), 0, 0);
+                              setEndDate(newEndDate);
+                            } else {
+                              setEndDate(t);
+                            }
                           }
                         }}
                         aria-disabled={isPast}
                       >
-                        {t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {formatTime(t)}
                       </div>
                     );
                   })}

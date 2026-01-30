@@ -46,7 +46,9 @@ export default function EditEventModal({
     event.start_time ? new Date(`${event.date}T${event.start_time}`) : null
   );
   const [endDate, setEndDate] = useState<Date | null>(
-    event.end_time ? new Date(`${event.date}T${event.end_time}`) : null
+    event.end_time
+      ? new Date(`${event.end_date || event.date}T${event.end_time}`)
+      : null
   );
   const [showDateModal, setShowDateModal] = useState(false);
 
@@ -104,6 +106,9 @@ export default function EditEventModal({
         date,
         start_time: startTime,
         end_time: hasEndTime && endTime ? endTime : null,
+        end_date: hasEndTime && endTime && endDate && endDate.toDateString() !== new Date(`${date}T${startTime}`).toDateString()
+          ? DateTime.fromJSDate(endDate).toISODate()
+          : null,
         message,
         location,
         location_lat: locationLat,
@@ -133,13 +138,19 @@ export default function EditEventModal({
       await supabase.from('event_guests').insert(eventGuestInserts);
     }
 
+    // Calculate end_date if end date is different from start date
+    const endDateStr = hasEndTime && endTime && endDate && endDate.toDateString() !== new Date(`${date}T${startTime}`).toDateString()
+      ? DateTime.fromJSDate(endDate).toISODate() ?? undefined
+      : undefined;
+
     // Update local event object
-    const updatedEvent = {
+    const updatedEvent: Event = {
       ...event,
       title,
       date,
       start_time: startTime,
       end_time: hasEndTime && endTime ? endTime : undefined,
+      end_date: endDateStr,
       message,
       location,
       location_lat: locationLat,
