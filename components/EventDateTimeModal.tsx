@@ -286,7 +286,14 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
                     // Don't allow end date before start date
                     return;
                   }
-                  setEndDate(date as Date | null);
+                  // Preserve end time when changing end date (same as start-date branch does for end date)
+                  if (date && endDate) {
+                    const preserved = new Date(date);
+                    preserved.setHours(endDate.getHours(), endDate.getMinutes(), 0, 0);
+                    setEndDate(preserved);
+                  } else {
+                    setEndDate(date as Date | null);
+                  }
                 } else {
                   setStartDate(date as Date | null);
                   // If end date exists and new start date is after end date, update end date

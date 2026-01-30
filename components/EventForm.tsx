@@ -87,6 +87,7 @@ export default function EventForm() {
       date: '',
       start_time: '',
       end_time: '',
+      end_date: '',
       message: '',
       tone: 'friendly',
       guests: [],
@@ -182,10 +183,12 @@ export default function EventForm() {
 
   useEffect(() => {
     // If editing, set initial values from form
+    const startDateStr = getValues('date');
+    const endDateStr = getValues('end_date') || startDateStr;
     const s = getValues('start_time');
     const e = getValues('end_time');
-    if (s) setStartDate(new Date(`${getValues('date')}T${s}`));
-    if (e) setEndDate(new Date(`${getValues('date')}T${e}`));
+    if (s) setStartDate(new Date(`${startDateStr}T${s}`));
+    if (e) setEndDate(new Date(`${endDateStr}T${e}`));
   }, [getValues]);
 
   const handleGenerateMessage = async () => {
