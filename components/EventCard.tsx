@@ -2,6 +2,12 @@
 import { Event } from '@/types/event';
 import { DateTime } from 'luxon';
 import Image from 'next/image';
+import { MapPin } from 'lucide-react';
+
+/** Partiful-style time: lowercase with no space (e.g. 8:00pm) */
+function formatTime(timeStr: string) {
+  return DateTime.fromFormat(timeStr, 'HH:mm').toFormat('h:mma').toLowerCase();
+}
 
 type EventCardProps = {
   event: Event;
@@ -34,7 +40,7 @@ export default function EventCard({
   return (
     <div className="p-8 space-y-4 transition-shadow bg-white border rounded-lg shadow-sm hover:shadow-md h-[500px] flex flex-col w-full max-w-[520px]">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-lg font-semibold leading-tight text-blue-600">{event.title}</h3>
+        <h3 className="text-2xl font-semibold leading-tight text-blue-600">{event.title}</h3>
         {!disableActions && (
           <button
             className="px-2 py-1 text-sm text-blue-600 rounded-sm hover:underline outline-1 outline-blue-600"
@@ -47,51 +53,72 @@ export default function EventCard({
       </div>
 
       <div className="space-y-1 text-sm text-gray-600">
-        <div className={`flex ${event.end_time ? 'justify-between' : 'gap-4'}`}>
-          {event.date && (
-            <p>
-              <strong>Date:</strong>{' '}
-              {DateTime.fromISO(event.date).toLocaleString(DateTime.DATE_MED)}
-              {event.end_date && event.end_date !== event.date && (
-                <>
-                  {' '}
-                  <span className="text-gray-500">-</span>{' '}
-                  {DateTime.fromISO(event.end_date).toLocaleString(DateTime.DATE_MED)}
-                </>
-              )}
-            </p>
-          )}
-          {event.start_time && (
-            <p>
-              <strong>Start:</strong>{' '}
-              {DateTime.fromFormat(event.start_time, 'HH:mm').toFormat('h:mm a')}
-            </p>
-          )}
-          {event.end_time ? (
-            <p>
-              <strong>End:</strong>{' '}
-              {DateTime.fromFormat(event.end_time, 'HH:mm').toFormat('h:mm a')}
-              {event.end_date && event.end_date !== event.date && (
-                <>
-                  {' '}
-                  <span className="text-gray-500">
-                    ({DateTime.fromISO(event.end_date).toLocaleString(DateTime.DATE_MED)})
+        {/* Partiful-style date & time */}
+        {event.date && (
+          <div className="space-y-0.5">
+            {event.end_date && event.end_date !== event.date ? (
+              /* Multi-day: "Thu, Nov 28 · 12:00pm —" / "Sun, Dec 1 · 12:00pm" */
+              <>
+                <p>
+                  <span className="text-base font-medium text-gray-700">
+                    {DateTime.fromISO(event.date).toFormat('ccc, MMM d')}
                   </span>
-                </>
-              )}
-            </p>
-          ) : null}
-        </div>
+                  {event.start_time && (
+                    <span className="text-sm text-gray-500">
+                      {' · '}
+                      {formatTime(event.start_time)}
+                      {' —'}
+                    </span>
+                  )}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {DateTime.fromISO(event.end_date).toFormat('ccc, MMM d')}
+                  {event.end_time && (
+                    <>
+                      {' · '}
+                      {formatTime(event.end_time)}
+                    </>
+                  )}
+                </p>
+              </>
+            ) : event.end_time ? (
+              /* Single day, start and end: "Thursday, Feb 5" / "7:00pm – 9:00pm" */
+              <>
+                <p className="text-base font-medium text-gray-700">
+                  {DateTime.fromISO(event.date).toFormat('cccc, MMM d')}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {event.start_time && formatTime(event.start_time)}
+                  {' – '}
+                  {formatTime(event.end_time)}
+                </p>
+              </>
+            ) : (
+              /* Single day, start time only: "Saturday, Jan 31" / "8:00pm" */
+              <>
+                <p className="text-base font-medium text-gray-700">
+                  {DateTime.fromISO(event.date).toFormat('cccc, MMM d')}
+                </p>
+                {event.start_time && (
+                  <p className="text-sm text-gray-500">{formatTime(event.start_time)}</p>
+                )}
+              </>
+            )}
+          </div>
+        )}
         {event.location && (
-          <div className="flex items-start justify-between gap-4 mt-2">
-            <div className="flex flex-col min-w-0 max-w-[90%]">
-              <strong>Location:</strong>
+          <div className="flex items-start justify-between gap-4 mt-3">
+            <div className="flex items-start gap-2 min-w-0 max-w-[90%]">
+              <MapPin
+                className="shrink-0 mt-0.5 w-4 h-4 text-amber-600"
+                aria-hidden
+              />
               {event.location_lat && event.location_lng ? (
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${event.location_lat},${event.location_lng}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-1 text-blue-600 underline break-words whitespace-pre-line hover:text-blue-800"
+                  className="text-amber-700 hover:text-amber-800 underline break-words whitespace-pre-line"
                   style={{ wordBreak: 'break-word' }}
                 >
                   {event.location.split(',').map((line, idx, arr) => (
@@ -103,7 +130,7 @@ export default function EventCard({
                 </a>
               ) : (
                 <span
-                  className="mt-1 break-words whitespace-pre-line"
+                  className="text-amber-700 break-words whitespace-pre-line"
                   style={{ wordBreak: 'break-word' }}
                 >
                   {event.location.split(',').map((line, idx, arr) => (
@@ -159,7 +186,7 @@ export default function EventCard({
         )}
       </div>
       <div className="flex justify-between mt-2">
-        <span className="px-0 py-1 text-xs text-gray-500 bg-white rounded-full">
+        <span className="px-0 py-1 text-sm text-gray-500 bg-white rounded-full">
           Created:{' '}
           {event.createdAt
             ? DateTime.fromISO(event.createdAt).toRelative({ base: DateTime.now() })
