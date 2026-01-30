@@ -368,31 +368,26 @@ export default function EventForm() {
               </Label>
               <button
                 type="button"
-                className={`w-full px-3 py-2 text-left rounded-md border bg-transparent shadow-xs transition-[color,box-shadow] outline-none h-9 min-w-0 text-base md:text-sm border-input focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive ${!startDate ? 'text-muted-foreground' : 'text-foreground'}`}
+                className={`w-full px-3 py-2 text-left rounded-md border bg-transparent shadow-xs transition-[color,box-shadow] outline-none min-h-9 min-w-0 text-base md:text-sm border-input focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive ${!startDate ? 'text-muted-foreground' : 'text-foreground'}`}
                 onClick={() => setShowDateModal(true)}
               >
                 {startDate ? (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <span>{formatDateWithOrdinal(startDate)}</span>
-                      <span>{startDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
-                    </div>
+                  <span className="block">
+                    {formatDateWithOrdinal(startDate)}{' '}
+                    {startDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                     {hasEndTime && endDate && (
-                      <div className="flex items-center gap-3 text-gray-600">
-                        <span className="text-sm">
-                          {endDate.toDateString() !== startDate.toDateString()
-                            ? formatDateWithOrdinal(endDate)
-                            : 'End:'}
-                        </span>
-                        <span className="text-sm">
-                          {endDate.toLocaleTimeString([], {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </div>
+                      <>
+                        {' — '}
+                        {endDate.toDateString() !== startDate.toDateString()
+                          ? formatDateWithOrdinal(endDate) + ' '
+                          : 'End: '}
+                        {endDate.toLocaleTimeString([], {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </>
                     )}
-                  </div>
+                  </span>
                 ) : (
                   'Select Date & Time'
                 )}
