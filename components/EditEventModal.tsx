@@ -268,23 +268,27 @@ export default function EditEventModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg p-4 space-y-2 bg-white shadow-lg rounded-2xl"
+        className="relative w-full max-w-lg max-h-[calc(100vh-2rem)] flex flex-col bg-white shadow-lg rounded-2xl my-auto"
         onClick={e => e.stopPropagation()}
       >
-        {/* Close X button */}
-        <button
-          className="absolute text-2xl font-bold text-gray-400 top-4 right-6 hover:text-gray-700"
-          onClick={onClose}
-          aria-label="Close"
-          type="button"
-        >
-          x
-        </button>
-        <h3 className="text-2xl font-bold">Edit {title}</h3>
+        {/* Header: close + title */}
+        <div className="flex-shrink-0 flex items-start justify-between gap-4 p-4 pb-2">
+          <h3 className="text-2xl font-bold">Edit {title}</h3>
+          <button
+            className="text-2xl font-bold text-gray-400 hover:text-gray-700"
+            onClick={onClose}
+            aria-label="Close"
+            type="button"
+          >
+            x
+          </button>
+        </div>
+        {/* Scrollable form body */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 space-y-2">
         <div className="space-y-1">
           <Label htmlFor="edit-title" className="block font-medium text-md">
             Title
@@ -311,7 +315,11 @@ export default function EditEventModal({
               : 'Select Date & Time'}
             {hasEndTime && endDate && (
               <span className="ml-2 text-gray-500">
-                — {DateTime.fromJSDate(endDate).toFormat('h:mm a')}
+                —{' '}
+                {startDate && endDate.toDateString() !== startDate.toDateString()
+                  ? `${DateTime.fromJSDate(endDate).toFormat('ccc, MMM d')} · `
+                  : ''}
+                {DateTime.fromJSDate(endDate).toFormat('h:mm a')}
               </span>
             )}
           </button>
@@ -484,7 +492,9 @@ export default function EditEventModal({
             )}
           </div>
         </div>
-        <div className="flex items-center justify-between gap-4">
+        </div>
+        {/* Footer: action buttons always visible */}
+        <div className="flex-shrink-0 flex items-center justify-between gap-4 p-4 pt-4 border-t border-gray-100">
           <div>
             <Button variant="destructive" size="lg" onClick={handleDelete} disabled={saving}>
               Delete
