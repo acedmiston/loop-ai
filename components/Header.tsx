@@ -56,9 +56,9 @@ export default function Header() {
           </div>
           <nav className="items-center hidden gap-6 text-sm text-gray-600 sm:flex ml-[60px]">
             <a
-              href="/dashboard"
+              href="/"
               className={`transition hover:text-blue-600 ${
-                pathname === '/dashboard' ? 'text-blue-600 font-medium' : ''
+                pathname === '/' ? 'text-blue-600 font-medium' : ''
               }`}
             >
               Dashboard

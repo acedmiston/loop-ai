@@ -294,7 +294,7 @@ export default function EventForm() {
         throw new Error('Failed to create event');
       }
 
-      router.push('/dashboard');
+      router.push('/');
 
       setTimeout(() => {
         reset();
