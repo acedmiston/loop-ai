@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const selectedTone = tone || 'casual';
+    const selectedTone = tone || 'friendly';
     let prompt = `
     You are a helpful assistant that writes short text messages for someone inviting their friends to an event. Only use an apologetic or "change in plans" tone if the event details clearly indicate a cancellation, reschedule, or change of plans.
     
