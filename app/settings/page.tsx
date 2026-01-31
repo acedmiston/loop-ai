@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { createSupabaseClient } from '@/lib/supabase';
 import { useUser } from '@/lib/user-context';
 import Skeleton from '@/components/Skeleton';
+import PageShell from '@/components/PageShell';
+import PageHeader from '@/components/PageHeader';
 
 export default function SettingsPage() {
   const supabase = createSupabaseClient();
@@ -79,8 +81,11 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="max-w-xl p-8 mx-auto mt-6 space-y-6 bg-white border shadow-sm rounded-xl">
-      <h1 className="text-2xl font-bold">Profile Settings</h1>
+    <PageShell>
+      <PageHeader
+        title="Profile Settings"
+        subtitle="Update your profile information."
+      />
 
       {loading ? (
         <div className="space-y-4">
@@ -120,6 +125,6 @@ export default function SettingsPage() {
           </Button>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

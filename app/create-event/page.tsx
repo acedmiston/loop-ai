@@ -1,7 +1,9 @@
 'use client';
-import { motion } from 'framer-motion';
+
 import { useRequireAuth } from '@/lib/use-require-auth';
 import EventForm from '@/components/EventForm';
+import PageShell from '@/components/PageShell';
+import PageHeader from '@/components/PageHeader';
 
 export default function StartPage() {
   const { user, loading } = useRequireAuth();
@@ -11,18 +13,12 @@ export default function StartPage() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      <div className="mb-8 space-y-1 text-center">
-        <h1 className="text-2xl font-bold">Create a New Event</h1>
-        <p className="text-sm text-muted-foreground">
-          Fill in the details and we&apos;ll handle the rest.
-        </p>
-      </div>
+    <PageShell>
+      <PageHeader
+        title="Create a New Event"
+        subtitle="Fill in the details and we'll handle the rest."
+      />
       <EventForm />
-    </motion.div>
+    </PageShell>
   );
 }

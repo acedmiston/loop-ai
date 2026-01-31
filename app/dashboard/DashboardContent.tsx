@@ -6,7 +6,8 @@ import EventCard from '@/components/EventCard';
 import Link from 'next/link';
 import { Event, Guest } from '@/types/event';
 import EditEventModal from '@/components/EditEventModal';
-import { motion } from 'framer-motion';
+import PageShell from '@/components/PageShell';
+import PageHeader from '@/components/PageHeader';
 import SendTextModal from '@/components/SendTextModal';
 import { DateTime } from 'luxon';
 
@@ -92,25 +93,19 @@ export default function DashboardContent() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      <div className="mb-3 space-y-1 text-center">
-        <h1 className="text-2xl font-bold">Your Events</h1>
-        <p className="text-sm text-muted-foreground">View and manage your events.</p>
-      </div>
-      <div className="w-full max-w-4xl p-0 mx-auto space-y-6 md:p-6">
-        <div className="flex items-center justify-between pb-4 border-b">
-          <div />
+    <PageShell>
+      <PageHeader
+        title="Your Events"
+        subtitle="View and manage your events."
+        action={
           <Link
             href="/create-event"
-            className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
           >
             Create New Event
           </Link>
-        </div>
+        }
+      />
         <div className="flex gap-4 mb-4">
           <button
             className={`px-4 py-2 rounded-t ${activeTab === 'upcoming' ? 'font-bold border-b-2 border-blue-500' : 'text-gray-500'}`}
@@ -194,7 +189,6 @@ export default function DashboardContent() {
             eventId={sendModalEvent.id}
           />
         )}
-      </div>
-    </motion.div>
+    </PageShell>
   );
 }

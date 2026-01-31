@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import AddContactModal from '@/components/AddContactModal';
+import PageShell from '@/components/PageShell';
+import PageHeader from '@/components/PageHeader';
 
 export default function ContactsPage() {
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -44,8 +46,14 @@ export default function ContactsPage() {
   });
 
   return (
-    <div className="max-w-2xl p-6 mx-auto space-y-6 bg-white rounded-lg shadow">
-      <h1 className="mb-4 text-2xl font-bold">My Friends</h1>
+    <PageShell>
+      <PageHeader
+        title="My Friends"
+        subtitle="Manage your contacts for event invites."
+        action={
+          <Button onClick={() => setShowModal(true)}>Add a Friend</Button>
+        }
+      />
       <div className="mb-4">
         <Input
           type="text"
@@ -90,7 +98,6 @@ export default function ContactsPage() {
         ))}
         {filtered.length === 0 && <li className="text-sm text-gray-500">No friends found.</li>}
       </ul>
-      <Button onClick={() => setShowModal(true)}>Add a Friend</Button>
 
       {showModal && (
         <AddContactModal
@@ -126,6 +133,6 @@ export default function ContactsPage() {
           onClose={() => setShowModal(false)}
         />
       )}
-    </div>
+    </PageShell>
   );
 }
