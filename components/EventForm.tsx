@@ -697,6 +697,7 @@ export default function EventForm() {
                 date: getValues('date'),
                 start_time: getValues('start_time'),
                 end_time: hasEndTime && getValues('end_time') ? getValues('end_time') : undefined,
+                end_date: hasEndTime && getValues('end_date') ? getValues('end_date') : undefined,
                 tone,
                 createdAt: new Date().toISOString(),
                 guests: selectedGuestObjects,
