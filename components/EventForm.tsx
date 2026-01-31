@@ -226,26 +226,25 @@ export default function EventForm() {
       const displayDate = startDateTime.toFormat('cccc, LLLL d');
 
       let input = `Event Title: ${values.title}\nDate: ${displayDate}\nStart Time: ${formattedStartTime}`;
+      if (hasEndTime && endDateTime && endDateStr !== values.date) {
+        input += `\nEnd Date: ${endDateTime.toFormat('cccc, LLLL d')}`;
+      }
       if (hasEndTime && formattedEndTime) {
         input += `\nEnd Time: ${formattedEndTime}`;
       }
       input += `\nDetails: ${msg}`;
 
-      const promptPersonalize = personalize
-        ? "\n\nPersonalize the message for each guest by including their first name at the start of the message using the placeholder [Name]. For example: 'Hi [Name]! ...'. Do not use any other greeting or signature. Only use the placeholder, do not use a real name."
-        : '';
-
       const response = await fetch('/api/generate-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          input: input + promptPersonalize,
+          eventDetails: input,
+          message: msg,
           tone,
           personalize,
           location,
           displayTime,
           displayDate,
-          message: msg,
         }),
       });
 
