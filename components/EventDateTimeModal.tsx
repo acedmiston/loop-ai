@@ -77,7 +77,7 @@ const EventDateTimeModal: React.FC<EventDateTimeModalProps> = ({
   const startTimeOptions = getTimeOptions(false);
   const endTimeOptions = getTimeOptions(true);
 
-  // Helper to format date in Partiful style: "Sat, Jan 24th"
+  // Helper to format date: "Sat, Jan 24th"
   const formatDateCompact = (date: Date) => {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

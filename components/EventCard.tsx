@@ -4,7 +4,7 @@ import { DateTime } from 'luxon';
 import Image from 'next/image';
 import { MapPin } from 'lucide-react';
 
-/** Partiful-style time: lowercase with no space (e.g. 8:00pm) */
+/** Time format: lowercase with no space (e.g. 8:00pm) */
 function formatTime(timeStr: string) {
   return DateTime.fromFormat(timeStr, 'HH:mm').toFormat('h:mma').toLowerCase();
 }
@@ -53,7 +53,7 @@ export default function EventCard({
       </div>
 
       <div className="space-y-1 text-sm text-gray-600">
-        {/* Partiful-style date & time */}
+        {/* Date & time display */}
         {event.date && (
           <div className="space-y-0.5">
             {event.end_date && event.end_date !== event.date ? (
@@ -88,9 +88,9 @@ export default function EventCard({
                   {DateTime.fromISO(event.date).toFormat('cccc, MMM d')}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {event.start_time && formatTime(event.start_time)}
-                  {' – '}
-                  {formatTime(event.end_time)}
+                  {event.start_time
+                    ? `${formatTime(event.start_time)} – ${formatTime(event.end_time)}`
+                    : formatTime(event.end_time)}
                 </p>
               </>
             ) : (
