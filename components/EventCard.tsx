@@ -9,6 +9,16 @@ function formatTime(timeStr: string) {
   return DateTime.fromFormat(timeStr, 'HH:mm').toFormat('h:mma').toLowerCase();
 }
 
+/** Address parts without country (e.g. drop "United States" or "United", "States") */
+function addressWithoutCountry(location: string): string[] {
+  const parts = location.split(',').map(s => s.trim()).filter(Boolean);
+  if (parts.length === 0) return [];
+  const last = parts[parts.length - 1];
+  if (/^United States$|^USA$|^U\.?S\.?A\.?$/i.test(last)) return parts.slice(0, -1);
+  if (parts.length >= 2 && parts[parts.length - 2] === 'United' && parts[parts.length - 1] === 'States') return parts.slice(0, -2);
+  return parts;
+}
+
 type EventCardProps = {
   event: Event;
   onEdit?: (event: Event) => void;
@@ -38,12 +48,14 @@ export default function EventCard({
   const displayMessage = event.message.replace(/\{\{firstName\}\}/g, previewName);
 
   return (
-    <div className="p-8 space-y-4 transition-shadow bg-white border rounded-lg shadow-sm hover:shadow-md h-[500px] flex flex-col w-full max-w-[520px]">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-2xl font-semibold leading-tight text-blue-600">{event.title}</h3>
+    <div className="p-8 space-y-4 transition-shadow bg-white border rounded-lg shadow-sm hover:shadow-md h-[500px] flex flex-col w-full min-w-[300px] max-w-[520px] min-h-0 overflow-hidden">
+      <div className="flex items-center justify-between gap-2 mb-2 min-w-0">
+        <h3 className="text-2xl font-semibold leading-tight text-blue-600 min-w-0 truncate" title={event.title}>
+          {event.title}
+        </h3>
         {!disableActions && (
           <button
-            className="px-2 py-1 text-sm text-blue-600 rounded-sm hover:underline outline-1 outline-blue-600"
+            className="px-2 py-1 text-sm text-blue-600 rounded-sm hover:underline outline-1 outline-blue-600 shrink-0 whitespace-nowrap"
             onClick={() => onEdit?.(event)}
             type="button"
           >
@@ -107,8 +119,8 @@ export default function EventCard({
           </div>
         )}
         {event.location && (
-          <div className="flex items-start justify-between gap-4 mt-3">
-            <div className="flex items-start gap-2 min-w-0 max-w-[90%]">
+          <div className="flex items-center justify-between gap-2 mt-1 min-w-0">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <MapPin
                 className="shrink-0 mt-0.5 w-4 h-4 text-amber-600"
                 aria-hidden
@@ -121,9 +133,9 @@ export default function EventCard({
                   className="text-amber-700 hover:text-amber-800 underline break-words whitespace-pre-line"
                   style={{ wordBreak: 'break-word' }}
                 >
-                  {event.location.split(',').map((line, idx, arr) => (
+                  {addressWithoutCountry(event.location).map((line, idx, arr) => (
                     <span key={idx}>
-                      {line.trim()}
+                      {line}
                       {idx < arr.length - 1 && <br />}
                     </span>
                   ))}
@@ -133,9 +145,9 @@ export default function EventCard({
                   className="text-amber-700 break-words whitespace-pre-line"
                   style={{ wordBreak: 'break-word' }}
                 >
-                  {event.location.split(',').map((line, idx, arr) => (
+                  {addressWithoutCountry(event.location).map((line, idx, arr) => (
                     <span key={idx}>
-                      {line.trim()}
+                      {line}
                       {idx < arr.length - 1 && <br />}
                     </span>
                   ))}
@@ -150,11 +162,11 @@ export default function EventCard({
                 className="shrink-0"
               >
                 <Image
-                  width={200}
-                  height={120}
-                  src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s+ff0000(${event.location_lng},${event.location_lat})/${event.location_lng},${event.location_lat},15,0/200x120?access_token=${process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}`}
+                  width={140}
+                  height={84}
+                  src={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s+ff0000(${event.location_lng},${event.location_lat})/${event.location_lng},${event.location_lat},15,0/140x84?access_token=${process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}`}
                   alt="Map preview"
-                  className="rounded shadow border w-[200px] h-[120px] object-cover"
+                  className="rounded shadow border w-[140px] h-[84px] object-cover"
                 />
               </a>
             )}
@@ -176,7 +188,7 @@ export default function EventCard({
         </div>
       </div>
 
-      <div className="pt-2 border-t overflow-y-auto flex-1 min-h-[100px]">
+      <div className="pt-2 border-t overflow-y-auto flex-1 min-h-[100px] min-w-0">
         <label className="block mb-1 text-sm font-medium ">Message:</label>
         <div className="text-sm">{displayMessage}</div>
         {wasPersonalized && (
@@ -185,8 +197,8 @@ export default function EventCard({
           </div>
         )}
       </div>
-      <div className="flex justify-between mt-2">
-        <span className="px-0 py-1 text-sm text-gray-500 bg-white rounded-full">
+      <div className="flex justify-between items-center gap-2 mt-2 min-w-0 shrink-0">
+        <span className="px-0 py-1 text-sm text-gray-500 bg-white rounded-full min-w-0 truncate">
           Created:{' '}
           {event.createdAt
             ? DateTime.fromISO(event.createdAt).toRelative({ base: DateTime.now() })
@@ -194,7 +206,7 @@ export default function EventCard({
         </span>
         {!disableActions && (
           <button
-            className="px-2 py-1 text-xs text-white bg-blue-600 rounded-sm d-sm hover:underline"
+            className="px-2 py-1 text-xs text-white bg-blue-600 rounded-sm shrink-0 hover:underline"
             onClick={onResend}
           >
             Resend messages
