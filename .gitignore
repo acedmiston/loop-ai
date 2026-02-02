@@ -9,7 +9,10 @@
 # testing
 /coverage
 .vscode
-.cursor
+
+# Cursor: ignore personal state, but track shared rules
+.cursor/chat/
+.cursor/projects/
 
 messages/pre
 

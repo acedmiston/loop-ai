@@ -1,0 +1,39 @@
+---
+description: Project context and instructions for AI — read this so you don't have to repeat yourself
+alwaysApply: false
+---
+# Loop AI – Context for AI
+
+Instructions and context that apply to this project. The AI reads this file automatically.
+
+---
+
+## Key notes (follow these so you don’t have to be asked again)
+
+### Stack & structure
+- **Next.js 16** App Router. Pages in `app/`, API routes in `app/api/`. Use `NextResponse.json()` in API routes.
+- **Supabase**: `createSupabaseClient()` in client components (from `@/lib/supabase`). `createSupabaseServerClient()` in API routes and server code (from `@/lib/supabase-server`). Don’t mix them.
+- **Styling**: Tailwind only. Use the `cn()` helper from `@/lib/utils` for conditional/merged class names. Reuse `components/ui/` (Button, Input, Label, Textarea, etc.) instead of rolling new primitives.
+- **Icons**: `lucide-react`. **Toasts**: `sonner` (`toast.success`, `toast.error`, etc.).
+- **Dates/times**: Use **Luxon** (`luxon`) for formatting and parsing. Time display: lowercase, no space (e.g. `8:00pm`), per `EventCard`’s `formatTime`.
+- **Types**: `Event` and `Guest` live in `@/types/event`. Use these types; don’t redefine the same shapes elsewhere.
+
+### Conventions
+- **Formatting**: Match project Prettier: single quotes, print width 100, `arrowParens: "avoid"` (e.g. `x => x` not `(x) => x`), semicolons, trailing commas (ES5).
+- **Components**: Default export for page and UI components. Add `'use client'` only when the component uses hooks, browser APIs, or client-only deps.
+- **API routes**: Validate body/query, then get user with `supabase.auth.getUser()`. Return 400 for bad input, 401 when not authenticated, then do the work.
+- **Forms**: React Hook Form in use (e.g. `EventForm`). Use existing form patterns and shared types for payloads.
+
+### UI / copy
+- **Location/address**: When showing an address without country, strip "United States" / "USA" (and "United", "States" as last two parts). See `addressWithoutCountry` in `EventCard`.
+- **Guest names**: Prefer `first_name` / `last_name` where available; fall back to `name` or display logic already in the codebase.
+
+### Commits
+- When the user says "commit" (or similar): break changes into **focused chunks**—one logical change per commit—with **detailed, descriptive messages** (e.g. what changed and why). Don’t squash everything into a single commit unless the change is truly one unit of work.
+
+---
+
+## Your recurring instructions
+
+*Add below anything else you find yourself telling the AI over and over:*
+- *(e.g. preferred patterns, things to always/never do, names or context to assume)*
