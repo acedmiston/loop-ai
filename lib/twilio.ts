@@ -30,4 +30,14 @@ export function getStatusCallbackUrl(): string {
   return `${process.env.NEXT_PUBLIC_BASE_URL || 'https://loop-ai-five.vercel.app'}/api/twilio-status-callback`;
 }
 
+/**
+ * Get the Content Template SID for WhatsApp (event_update template).
+ * Templates created in the Twilio Content Template Builder are required for
+ * WhatsApp business-initiated messages and for messages outside the 24-hour window.
+ * @see https://www.twilio.com/docs/content/overview
+ */
+export function getWhatsAppContentTemplateSid(): string | undefined {
+  return process.env.TWILIO_WHATSAPP_CONTENT_SID?.trim() || undefined;
+}
+
 export default client;

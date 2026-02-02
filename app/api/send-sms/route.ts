@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import client, { getWhatsAppFromNumber, getStatusCallbackUrl } from '@/lib/twilio';
+import client, {
+  getWhatsAppFromNumber,
+  getStatusCallbackUrl,
+  getWhatsAppContentTemplateSid,
+} from '@/lib/twilio';
 
 export async function POST(req: Request) {
   const { to, body, channel } = await req.json();
@@ -13,16 +17,26 @@ export async function POST(req: Request) {
       channel === 'whatsapp' || (typeof to === 'string' && to.startsWith('whatsapp:'));
     const from = isWhatsApp ? getWhatsAppFromNumber() : process.env.TWILIO_PHONE_NUMBER!;
     const statusCallback = getStatusCallbackUrl();
+    const contentSid = isWhatsApp ? getWhatsAppContentTemplateSid() : undefined;
 
     // Log the request details (without exposing sensitive data)
     if (process.env.NODE_ENV === 'development') {
-      console.log('[send-sms] Sending message to:', to, 'via', channel);
+      console.log('[send-sms] Sending message to:', to, 'via', channel, contentSid ? '(content template)' : '');
     }
 
-    // For WhatsApp, try freeform first, then fall back to template if outside 24-hour window
+    // For WhatsApp: use Content Template when configured (required for business-initiated / outside 24hr window)
     let message;
-    if (isWhatsApp) {
-      // Try freeform message first (works within 24-hour window)
+    if (isWhatsApp && contentSid) {
+      // Use approved Content Template (event_update: "LooP Update: {{1}} Reply STOP to opt out.")
+      message = await client.messages.create({
+        to,
+        from,
+        contentSid,
+        contentVariables: JSON.stringify({ 1: body }), // Variable {{1}} in template
+        statusCallback,
+      });
+    } else if (isWhatsApp) {
+      // No template configured: try freeform (works only within 24-hour window)
       try {
         message = await client.messages.create({
           to,
@@ -31,37 +45,14 @@ export async function POST(req: Request) {
           statusCallback,
         });
       } catch (freeformError: any) {
-        // If we get the 24-hour window error, fall back to template
         if (freeformError?.code === 63016) {
-          const contentSid = process.env.TWILIO_WHATSAPP_CONTENT_SID;
-
-          if (!contentSid) {
-            throw new Error(
-              'WhatsApp template required but TWILIO_WHATSAPP_CONTENT_SID not configured. ' +
-                'Please set up a WhatsApp Message Template in Twilio Console and add the Content SID to your environment variables.'
-            );
-          }
-
-          if (process.env.NODE_ENV === 'development') {
-            console.log(
-              '[send-sms] Freeform failed (63016), using template with Content SID:',
-              contentSid
-            );
-          }
-
-          // Use WhatsApp Message Template
-          message = await client.messages.create({
-            to,
-            from,
-            contentSid,
-            contentVariables: JSON.stringify({
-              '1': body, // Variable {{1}} in the template
-            }),
-            statusCallback,
-          });
-        } else {
-          throw freeformError;
+          throw new Error(
+            'WhatsApp requires a Content Template for business-initiated messages. ' +
+              'Add TWILIO_WHATSAPP_CONTENT_SID (your event_update template SID) to your environment. ' +
+              'Create templates in Twilio Console > Content Template Builder.'
+          );
         }
+        throw freeformError;
       }
     } else {
       // Regular SMS - no template needed

@@ -1,5 +1,19 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Environment Setup
+
+Copy `.env.example` to `.env.local` and fill in your values.
+
+### Twilio Content Template (WhatsApp)
+
+For WhatsApp messaging, you must use an approved [Content Template](https://www.twilio.com/docs/content/overview) from the Twilio Content Template Builder. The `event_update` template is required for business-initiated messages and messages outside the 24-hour reply window.
+
+1. Create or use an approved template in **Twilio Console > Content Template Builder**
+2. Copy the **Content Template SID** (starts with `HX`)
+3. Set `TWILIO_WHATSAPP_CONTENT_SID` in your `.env.local`
+
+The default `event_update` template format: `LooP Update: {{1}} Reply STOP to opt out.` — variable `{{1}}` is filled with your message.
+
 ## Getting Started
 
 First, run the development server:
