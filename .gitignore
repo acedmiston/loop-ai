@@ -9,6 +9,8 @@
 # testing
 /coverage
 .vscode
+.cursor
+
 messages/pre
 
 # next.js
