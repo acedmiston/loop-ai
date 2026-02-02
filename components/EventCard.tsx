@@ -11,11 +11,19 @@ function formatTime(timeStr: string) {
 
 /** Address parts without country (e.g. drop "United States" or "United", "States") */
 function addressWithoutCountry(location: string): string[] {
-  const parts = location.split(',').map(s => s.trim()).filter(Boolean);
+  const parts = location
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
   if (parts.length === 0) return [];
   const last = parts[parts.length - 1];
   if (/^United States$|^USA$|^U\.?S\.?A\.?$/i.test(last)) return parts.slice(0, -1);
-  if (parts.length >= 2 && parts[parts.length - 2] === 'United' && parts[parts.length - 1] === 'States') return parts.slice(0, -2);
+  if (
+    parts.length >= 2 &&
+    parts[parts.length - 2] === 'United' &&
+    parts[parts.length - 1] === 'States'
+  )
+    return parts.slice(0, -2);
   return parts;
 }
 
@@ -48,9 +56,12 @@ export default function EventCard({
   const displayMessage = event.message.replace(/\{\{firstName\}\}/g, previewName);
 
   return (
-    <div className="p-8 space-y-4 transition-shadow bg-white border rounded-lg shadow-sm hover:shadow-md h-[500px] flex flex-col w-full min-w-[300px] max-w-[520px] min-h-0 overflow-hidden">
-      <div className="flex items-center justify-between gap-2 mb-2 min-w-0">
-        <h3 className="text-2xl font-semibold leading-tight text-blue-600 min-w-0 truncate" title={event.title}>
+    <div className="p-4 sm:p-8 space-y-4 transition-shadow bg-white border rounded-lg shadow-sm hover:shadow-md h-[500px] flex flex-col w-full min-w-0 sm:min-w-[300px] max-w-[600px] min-h-0 overflow-hidden">
+      <div className="flex items-center justify-between min-w-0 gap-2 mb-2">
+        <h3
+          className="min-w-0 text-2xl font-semibold leading-tight text-blue-600 truncate"
+          title={event.title}
+        >
           {event.title}
         </h3>
         {!disableActions && (
@@ -118,22 +129,22 @@ export default function EventCard({
             )}
           </div>
         )}
+
         {event.location && (
-          <div className="flex items-center justify-between gap-2 mt-1 min-w-0">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <MapPin
-                className="shrink-0 mt-0.5 w-4 h-4 text-amber-600"
-                aria-hidden
-              />
+          <div
+            className={`flex items-center justify-between min-w-0 gap-2 mt-1 ${!(event.location_lat && event.location_lng) ? 'pr-4 pt-2 pb-2' : ''}`}
+          >
+            <div className="flex items-center flex-1 min-w-0 gap-2">
+              <MapPin className="shrink-0 mt-0.5 w-4 h-4 text-amber-600" aria-hidden />
               {event.location_lat && event.location_lng ? (
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${event.location_lat},${event.location_lng}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-amber-700 hover:text-amber-800 underline break-words whitespace-pre-line"
+                  className="underline break-words whitespace-pre-line text-amber-700 hover:text-amber-800"
                   style={{ wordBreak: 'break-word' }}
                 >
-                  {addressWithoutCountry(event.location).map((line, idx, arr) => (
+                  {addressWithoutCountry(event.location || '').map((line, idx, arr) => (
                     <span key={idx}>
                       {line}
                       {idx < arr.length - 1 && <br />}
@@ -142,10 +153,10 @@ export default function EventCard({
                 </a>
               ) : (
                 <span
-                  className="text-amber-700 break-words whitespace-pre-line"
+                  className="break-words whitespace-pre-line text-amber-700"
                   style={{ wordBreak: 'break-word' }}
                 >
-                  {addressWithoutCountry(event.location).map((line, idx, arr) => (
+                  {addressWithoutCountry(event.location || '').map((line, idx, arr) => (
                     <span key={idx}>
                       {line}
                       {idx < arr.length - 1 && <br />}
@@ -172,6 +183,7 @@ export default function EventCard({
             )}
           </div>
         )}
+
         <div className={'mt-2' + (event.location_lat && event.location_lng ? ' md:mt-4' : '')}>
           <strong>Friends: </strong>
           {guestNames.length === 0 ? (
@@ -197,8 +209,8 @@ export default function EventCard({
           </div>
         )}
       </div>
-      <div className="flex justify-between items-center gap-2 mt-2 min-w-0 shrink-0">
-        <span className="px-0 py-1 text-sm text-gray-500 bg-white rounded-full min-w-0 truncate">
+      <div className="flex items-center justify-between min-w-0 gap-2 mt-2 shrink-0">
+        <span className="min-w-0 px-0 py-1 text-sm text-gray-500 truncate bg-white rounded-full">
           Created:{' '}
           {event.createdAt
             ? DateTime.fromISO(event.createdAt).toRelative({ base: DateTime.now() })

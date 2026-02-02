@@ -168,11 +168,10 @@ export default function DashboardContent() {
   return (
     <PageShell className="max-w-6xl">
       <div
-        className="grid gap-x-8 gap-y-2"
-        style={{ gridTemplateColumns: showTimeline ? '9rem 1fr' : '1fr', gridTemplateRows: 'auto auto 1fr' }}
+        className={`grid gap-x-4 gap-y-2 sm:gap-x-8 grid-cols-1 grid-rows-[auto_auto_1fr] px-2 sm:px-0 ${showTimeline ? 'sm:grid-cols-[7rem_1fr]' : ''}`}
       >
-        {/* Row 1: header spans full width */}
-        <div className={`${showTimeline ? 'col-span-2' : 'col-span-1'} pb-2`}>
+        {/* Row 1: header spans full width; on sm+ with timeline spans 2 cols */}
+        <div className={`${showTimeline ? 'col-span-1 sm:col-span-2' : 'col-span-1'} pb-2`}>
           <PageHeader
             title="Your Events"
             subtitle="View and manage your events."
@@ -186,19 +185,18 @@ export default function DashboardContent() {
             }
           />
         </div>
-        {/* Row 2: tabs above center content (col 2 when timeline shown); larger gap above tabs */}
+        {/* Row 2: tabs at top of cell; on sm+ with timeline, start at col 2 */}
         <div
-          className="flex gap-4 pt-4 pb-2"
-          style={showTimeline ? { gridColumn: 2 } : undefined}
+          className={`flex flex-wrap items-start gap-2 sm:gap-4 pt-0 pb-6 ${showTimeline ? 'sm:col-start-2' : ''}`}
         >
           <button
-            className={`px-4 py-2 rounded-t ${activeTab === 'upcoming' ? 'font-bold border-b-2 border-blue-500' : 'text-gray-500'}`}
+            className={`px-4 py-2 rounded-t text-lg ${activeTab === 'upcoming' ? 'font-bold border-b-2 border-blue-500' : 'text-gray-500'}`}
             onClick={() => setActiveTab('upcoming')}
           >
             Upcoming Events
           </button>
           <button
-            className={`px-4 py-2 rounded-t ${activeTab === 'past' ? 'font-bold border-b-2 border-blue-500' : 'text-gray-500'}`}
+            className={`px-4 py-2 rounded-t text-lg ${activeTab === 'past' ? 'font-bold border-b-2 border-blue-500' : 'text-gray-500'}`}
             onClick={() => setActiveTab('past')}
           >
             Past Events
@@ -207,7 +205,7 @@ export default function DashboardContent() {
         {/* Row 3: timeline (col 1) and event list (col 2) share the same row — aligns by layout, no fixed padding */}
         {showTimeline && (
           <aside
-            className="sticky top-6 self-start hidden sm:block min-h-0"
+            className="sticky self-start hidden min-h-0 top-6 sm:block"
             aria-label="Jump to year or month"
           >
             <nav className="pr-4 space-y-2 border-r border-gray-200">
@@ -238,7 +236,7 @@ export default function DashboardContent() {
             </nav>
           </aside>
         )}
-        <main className={`min-w-0 space-y-6 ${showTimeline ? '' : 'col-span-1'}`}>
+        <main className={`min-w-0 space-y-6 col-span-1 ${showTimeline ? 'sm:col-start-2' : ''}`}>
           {currentEvents.length > 0 ? (
             <div className="space-y-8">
               {sections.map(({ year, month, monthLabel, events: eventsInSection }) => (
@@ -252,7 +250,12 @@ export default function DashboardContent() {
                   <h3 className="mb-2 text-sm font-semibold tracking-wide text-gray-500 uppercase">
                     {monthLabel} {year}
                   </h3>
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2 justify-items-center items-start w-full min-w-0" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))' }}>
+                  <div
+                    className="grid items-start w-full min-w-0 grid-cols-1 gap-6 md:grid-cols-2 justify-items-center"
+                    style={{
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))',
+                    }}
+                  >
                     {eventsInSection.map(event => (
                       <EventCard
                         key={event.id}
@@ -284,7 +287,7 @@ export default function DashboardContent() {
               <p className="mb-4 text-sm text-gray-500">
                 Past events will appear here after their scheduled time.
               </p>
-          </div>
+            </div>
           )}
         </main>
       </div>
