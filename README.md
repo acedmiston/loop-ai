@@ -14,6 +14,26 @@ For WhatsApp messaging, you must use an approved [Content Template](https://www.
 
 The default `event_update` template format: `LooP Update: {{1}} Reply STOP to opt out.` — variable `{{1}}` is filled with your message.
 
+### Messaging Service (recommended for Content Templates)
+
+Twilio docs recommend using a [Messaging Service](https://www.twilio.com/docs/messaging/services) when sending Content Templates:
+
+1. Go to **Twilio Console > Messaging > Services**
+2. Create a new Messaging Service (or use existing)
+3. In **Sender Pool**, add your WhatsApp number (+14155238886 for sandbox)
+4. Copy the Messaging Service SID (starts with `MG`)
+5. Set `TWILIO_MESSAGING_SERVICE_SID` in your `.env.local`
+
+### WhatsApp Sandbox (testing)
+
+When using the [Twilio Sandbox for WhatsApp](https://www.twilio.com/docs/whatsapp/sandbox):
+
+1. Set `TWILIO_WHATSAPP_NUMBER=+14155238886` (or omit it; this is the default)
+2. Recipients must send the sandbox join phrase to the sandbox number before they can receive messages
+3. See [Twilio Console > Messaging > Try it out > Send a WhatsApp message](https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn) for the join instructions
+
+**Error 63027?** Your custom template may not be approved for the sandbox. Either add a Messaging Service (above) or try your own WhatsApp number (+15557509381) if `event_update` is approved for that sender.
+
 ## Getting Started
 
 First, run the development server:
