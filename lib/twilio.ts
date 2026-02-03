@@ -16,11 +16,24 @@ if (!accountSid || !authToken) {
 const client = twilio(accountSid, authToken);
 
 /**
- * Get the WhatsApp sender number, formatted with whatsapp: prefix
+ * Normalize phone to E.164 for WhatsApp (digits only, + prefix).
+ * Handles US numbers: 10 digits -> +1XXXXXXXXXX, 11 digits starting with 1 -> +1XXXXXXXXXX
+ */
+export function toE164WhatsApp(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+  return digits.startsWith('+') ? phone : `+${digits}`;
+}
+
+/**
+ * Get the WhatsApp sender number, formatted with whatsapp: prefix.
+ * Use +14155238886 for Twilio Sandbox.
  */
 export function getWhatsAppFromNumber(): string {
   const whatsappNumber = process.env.TWILIO_WHATSAPP_NUMBER || '+14155238886';
-  return `whatsapp:${whatsappNumber.replace(/^whatsapp:/, '')}`;
+  const normalized = toE164WhatsApp(whatsappNumber.replace(/^whatsapp:/, ''));
+  return `whatsapp:${normalized}`;
 }
 
 /**
@@ -38,6 +51,16 @@ export function getStatusCallbackUrl(): string {
  */
 export function getWhatsAppContentTemplateSid(): string | undefined {
   return process.env.TWILIO_WHATSAPP_CONTENT_SID?.trim() || undefined;
+}
+
+/**
+ * Get the Messaging Service SID (MG...) if configured.
+ * Twilio docs recommend using a Messaging Service when sending Content Templates.
+ * Create one at: Twilio Console > Messaging > Services
+ * Add your WhatsApp sender to the Sender Pool.
+ */
+export function getMessagingServiceSid(): string | undefined {
+  return process.env.TWILIO_MESSAGING_SERVICE_SID?.trim() || undefined;
 }
 
 export default client;
