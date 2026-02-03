@@ -272,13 +272,13 @@ export default function DashboardContent() {
             <div className="p-8 text-center border-2 border-gray-200 border-dashed rounded-lg">
               <h3 className="mb-2 text-xl font-medium">No upcoming events</h3>
               <p className="mb-4 text-sm text-gray-500">
-                Create your first event to start keeping your friends in the loop.
+                Create an event to keep your friends in the LooP!
               </p>
               <Link
                 href="/create-event"
                 className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
               >
-                Create Your First Event
+                Create new event
               </Link>
             </div>
           ) : (
