@@ -665,18 +665,25 @@ export default function EventForm() {
                 </Button>
                 <Button
                   onClick={async () => {
-                    for (const phone of selectedGuests) {
-                      const formattedPhone = phone.startsWith('+') ? phone : `+1${phone}`;
-                      const to = `whatsapp:${formattedPhone}`;
-                      await fetch('/api/send-sms', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ to, body: message, channel: 'whatsapp' }),
-                      });
+                    try {
+                      for (const phone of selectedGuests) {
+                        const to = `whatsapp:${phone}`;
+                        const res = await fetch('/api/send-sms', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ to, body: message, channel: 'whatsapp' }),
+                        });
+                        if (!res.ok) {
+                          const errData = await res.json().catch(() => ({}));
+                          throw new Error(errData?.details || errData?.error || 'Failed to send');
+                        }
+                      }
+                      toast.success('Message sent!');
+                      setMessageSent(true);
+                      setActiveTab('review');
+                    } catch (err: any) {
+                      toast.error(err?.message || 'Failed to send message');
                     }
-                    toast.success('Message sent!');
-                    setMessageSent(true);
-                    setActiveTab('review');
                   }}
                   disabled={selectedGuests.length === 0 || !message.trim()}
                 >

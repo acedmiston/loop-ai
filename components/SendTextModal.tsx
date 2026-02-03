@@ -54,7 +54,11 @@ export default function SendTextModal({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ to, body: personalizedMessage, channel }),
         });
-        if (!res.ok) throw new Error('Failed to send to ' + guest.phone);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          const msg = errData?.details || errData?.error || `Failed to send to ${guest.phone}`;
+          throw new Error(msg);
+        }
         const { sid } = await res.json();
         // Log the sent message (ensure all required fields are present)
         const logPayload = {
