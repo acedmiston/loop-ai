@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Toaster } from 'sonner';
 import { UserProvider } from '@/lib/user-context';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Footer />
           </div>
           <Toaster position="bottom-right" richColors />
+          <SpeedInsights />
         </UserProvider>
       </body>
     </html>
