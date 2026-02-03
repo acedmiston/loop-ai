@@ -57,16 +57,14 @@ export async function POST(req: Request) {
         );
       }
       // Per Twilio docs: include MessagingServiceSid when sending Content Templates for best compatibility
-      const templateParams: Record<string, unknown> = {
+      const templateParams = {
         from,
         to: toNormalized,
         contentSid,
         contentVariables: JSON.stringify({ '1': sanitizedBody }),
         statusCallback,
+        ...(messagingServiceSid ? { messagingServiceSid } : {}),
       };
-      if (messagingServiceSid) {
-        templateParams.messagingServiceSid = messagingServiceSid;
-      }
       message = await client.messages.create(templateParams);
     } else if (isWhatsApp) {
       // No template configured: try freeform (works only within 24-hour window)
